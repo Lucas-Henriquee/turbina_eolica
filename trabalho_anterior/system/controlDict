@@ -1,0 +1,92 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2012                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     pimpleFoam;
+
+startFrom       latestTime; // Começando do zero para garantir a rampa correta
+startTime       0;
+stopAt          endTime;
+endTime         12;        // Tempo total citado no documento
+
+// Passo de tempo inicial (pequeno para o arranque)
+deltaT          0.00001;
+
+writeControl    adjustableRunTime;
+writeInterval   0.02;       // Salvando a cada 0.1s para não encher o disco
+purgeWrite      0;
+writeFormat     binary;
+writePrecision  6;
+writeCompression off;
+timeFormat      general;
+timePrecision   6;
+
+runTimeModifiable true;
+
+// --- CONTROLE DE PASSO DE TEMPO ---
+// Como é movimento prescrito (mais estável), podemos deixar automático
+adjustTimeStep  yes;
+maxCo           2.0;       // PIMPLE aguenta Courant alto
+maxAlphaCo      2.0;
+maxDeltaT       0.01;      // Teto para não perder resolução física
+
+// --- BIBLIOTECAS ---
+// Trocamos a libsixDoF pela libfvMotionSolvers (Movimento Sólido)
+libs            ("libfvMotionSolvers.so" "libforces.so");
+
+functions
+{
+  monitoramento
+  {
+    type            forceCoeffs;
+    libs            ("libforces.so");
+    patches         (helice);
+
+    rho             rhoInf;
+    rhoInf          1.104;
+
+    CofR            (0 0 0);      // idealmente o mesmo origin da rotatingMotion
+    dragDir         (1 0 0);      // direção do vento
+    liftDir         (0 0 1);      // perpendicular a drag e ao eixo
+    pitchAxis       (0 1 0);      // eixo de rotação
+
+    magUInf         6.0;
+    lRef            0.436;
+    Aref            0.149;
+
+    writeControl    runTime;
+    writeInterval   0.01;         // 100 amostras por segundo, bom p gráfico
+    log             no;
+  }
+
+  forcesHelice
+  {
+    type            forces;
+    libs            ("libforces.so");
+    patches         (helice);
+
+    rho             rhoInf;
+    rhoInf          1.104;
+    CofR            (0 0 0);
+
+    writeControl    runTime;
+    writeInterval   0.01;
+    log             no;
+  }
+}
+
+
+// ************************************************************************* //

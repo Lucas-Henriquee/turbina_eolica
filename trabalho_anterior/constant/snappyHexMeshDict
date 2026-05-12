@@ -1,0 +1,245 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD CFD Toolbox
+|  \\    /   O peration     | Website:  www.openfoam.com
+|   \\  /    A nd           | Version:  v9
+|    \\/     M anipulation  |
+-------------------------------------------------------------------------------
+Description
+    snappyHexMeshDict otimizado para turbina eólica com AMI.
+    Foco na qualidade da malha nas interfaces AMI e na hélice.
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      snappyHexMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Passos a serem executados (malha castelada e snap, camadas desabilitadas)
+castellatedMesh true;
+snap            true;
+addLayers       false; // Camadas de fronteira desabilitadas por enquanto (ativar após estabilidade)
+
+geometry
+{
+    
+ cylinder
+    {
+        type        triSurfaceMesh;
+        file        "cylinder.stl";
+    }
+    
+    outerCylinder
+    {
+        type        triSurfaceMesh;
+        file        "outerCylinder.stl";
+        regions
+        {
+            walls
+            {
+                 name      walls;
+            }
+            inlet
+            {
+                 name       inlet;
+            }
+            outlet
+            {
+                 name       outlet;
+            }
+        }
+    }
+    helice
+    {
+        type        triSurfaceMesh;
+        file        "helice.stl";
+       
+    }
+};
+
+
+castellatedMeshControls
+{
+    maxLocalCells       100000;
+    maxGlobalCells      2000000;
+    minRefinementCells  0;
+    maxLoadUnbalance    0.02;
+    nCellsBetweenLevels 6; // Otimizado: 2 ou 3 para transições suaves.
+
+    features
+    (
+        // ATENÇÃO: Descomente e use APENAS se você gerou cylinder.eMesh via surfaceFeatures
+        // E SE as arestas do cilindro são significativas e precisam de refinamento.
+        // Se o cylinder.stl é um cilindro perfeito, o refinamento por superfície é suficiente.
+        {
+            file        "cylinder.eMesh";
+            level       2; // Refinamento nas arestas do cilindro (para AMI)
+        }
+        {
+            file        "outerCylinder.eMesh";
+            level       0;
+        }
+        {
+            file        "helice.eMesh"; // Assumindo que você gerou este arquivo
+            level       5; // Refinamento alto para as arestas da hélice.
+        }
+    );
+
+    refinementSurfaces
+    {
+        
+ cylinder
+        {
+            level       (2 2);
+            cellZone    cylinder;
+            faceZone    cylinder;
+            mode        inside;
+        }
+        outerCylinder
+        {
+            level       (0 0);
+            regions
+            {
+                inlet
+                {
+                    level       (0 0);
+                    patchInfo
+                    {
+                        type        patch;
+                    }
+                }
+                outlet
+                {
+                    level       (0 0);
+                    patchInfo
+                    {
+                        type        patch;
+                    }
+                }
+                walls
+                {
+                    level       (0 0);
+                    patchInfo
+                    {
+                        type       wall;
+                    }
+                }
+            }
+        }
+       helice
+        {
+            level       (4 4);
+          
+        }
+    }
+
+    resolveFeatureAngle 20; // Valor padrão, bom para generalizar features.
+
+    refinementRegions
+    {
+        cylinder
+        {
+            mode        inside;
+            levels      ((1E15 2)); // Ajustado para manter uma transição mais suave
+                           // A malha rotativa deve ser de alta qualidade.
+        }
+        // Opcional: Adicione uma região de refinamento para o rastro da hélice,
+        // geralmente um cilindro ou caixa estendendo-se a jusante.
+        // wakeRegion
+        // {
+        //     mode        inside;
+        //     levels      ((0.1 5) (0.2 4) (0.5 3)); // Exemplo de refinamento gradual
+        // }
+    }
+
+    // Ponto de localização na malha para determinar qual parte do domínio é mantida.
+    // DEVE estar na região fluida ESTACIONÁRIA, FORA da cellZone 'cylinder'.
+    locationInMesh (0.0 -0.5 0.0); // Ajuste se seu cilindro for menor ou estiver em outra posição Y
+                                  // ou se o seu ponto de referência mudou.
+
+    allowFreeStandingZoneFaces false;
+}
+
+
+snapControls
+{
+    nSmoothPatch        5;   // Manter 3. Um valor mais alto (5) pode distorcer mais antes do snap.
+    tolerance           4.0; // Manter 2.0. Um valor mais baixo torna o snap mais rigoroso.
+    nSolveIter          30;  // **Aumentado para 50 (era 30/50).** Mais iterações para o snap convergir,
+                               // o que é bom para a qualidade da malha.
+    nRelaxIter          5;   // **Aumentado para 7 (era 5).** Mais relaxamento para corrigir a qualidade após o snap.
+    nFeatureSnapIter    10;  // **Aumentado para 15 (era 10).** Mais iterações para o snap em arestas importantes.
+
+    implicitFeatureSnap true;  // Detecta features geométricas automaticamente.
+    explicitFeatureSnap false; // Mantenha 'false' se você não usa arquivos .eMesh para o snap em si.
+                               // Se você usar .eMesh e quiser que o snap os siga, mude para 'true'.
+    multiRegionFeatureSnap true; // Importante para interfaces entre múltiplas superfícies (hélice e cilindro).
+}
+
+
+addLayersControls
+{
+    // Camadas de fronteira são desabilitadas (addLayers false;). Mantenha esta seção para referência.
+    // É altamente recomendado adicionar camadas APÓS ter uma simulação estável
+    // com uma malha sem camadas. Camadas aumentam a complexidade e a chance de falha.
+    relativeSizes       true;
+    layers              {}
+    expansionRatio      1.0;
+    finalLayerThickness 0.3;
+    minThickness        0.1;
+    nGrow               0;
+    featureAngle        30;
+    nRelaxIter          10;
+    nSolveIter          300;
+    nSmoothSurfaceNormals 1;
+    nSmoothNormals      3;
+    nSmoothThickness    10;
+    maxFaceThicknessRatio 0.5;
+    maxThicknessToMedialRatio 0.3;
+    minMedialAxisAngle  90;
+    nBufferCellsNoExtrude 0;
+    nLayerIter          50;
+}
+
+
+meshQualityControls
+{
+    // Limites de qualidade da malha. O snappyHexMesh tenta respeitá-los.
+    // Estes valores são geralmente bons, mas podem ser apertados se houver falhas de qualidade.
+    maxNonOrtho         70; // Mantenha 65 (seu checkMesh indicou ~65 max, mas este é o limite)
+    maxBoundarySkewness 15; // Bom e rigoroso.
+    maxInternalSkewness 10;  // Bom e rigoroso. (Se `checkMesh` mostrar skewness > 4, considere reduzir nRelaxIter no snap)
+    maxConcave          80; // Padrão, mas se tiver muitas células côncavas, pode ser necessário ajustá-lo.
+    minFlatness         0.5;
+    minVol              1e-13;
+    minTetQuality       -1;
+    minArea             -1;
+    minTwist            0.01;
+    minDeterminant      0.001;
+    minFaceWeight       0.05;
+    minVolRatio         0.01;
+    minTriangleTwist    -1;
+    
+
+    nSmoothScale        4;
+    errorReduction      0.75;
+
+    relaxed // Regras mais relaxadas para certas iterações de suavização
+    {
+        maxNonOrtho     75; // Permissivo até 75 para relaxamento.
+    }
+
+    explicitFeatureSnap true;
+    multiRegionFeatureSnap true;
+}
+
+// Tolerância para fusão de pontos.
+// Mantenha um valor pequeno (1e-6) se seus STLs são de alta qualidade e não há gaps.
+// Se houver pequenos gaps no STL que você quer que o snappyHexMesh tente fechar,
+// pode tentar um valor ligeiramente maior (ex: 1e-5), mas com cuidado.
+mergeTolerance      1e-5; 
+

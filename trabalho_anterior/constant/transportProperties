@@ -1,0 +1,25 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      transportProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+transportModel  Newtonian;
+
+// Viscosidade cinemática (nu) = mu / rho = 1.81e-5 / 1.225
+nu              [0 2 -1 0 0 0 0] 1.48e-05;
+
+// Densidade (rho) = 1.225 (Opcional para solvers incompressíveis, mas bom ter)
+rho [1 -3 0 0 0 0 0] 1.225;
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

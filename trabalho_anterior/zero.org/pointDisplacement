@@ -1,0 +1,47 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       pointVectorField;
+    location    "0";
+    object      pointDisplacement;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 0 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    // 1. Paredes estáticas (Túnel)
+    "(inlet|outlet|walls|cylinder)"
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    // 2. A Hélice (Calculada pelo 6DoF)
+    helice
+    {
+        type            calculated;
+        value           uniform (0 0 0);
+    }
+
+    // 3. AS INTERFACES ROTATIVAS (A Correção)
+    // Elas precisam ser do tipo cyclicAMI para permitir a rotação
+    "(AMI1|AMI2)"
+    {
+        type            cyclicAMI;
+        value           uniform (0 0 0);
+    }
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

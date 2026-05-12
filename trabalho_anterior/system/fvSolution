@@ -1,0 +1,91 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2012                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    // --- ESTE FOI O BLOCO QUE FALTOU ---
+    // Necessário para corrigir o fluxo na interface AMI
+    "(pcorr|pcorrFinal)"
+    {
+        solver           PBiCGStab;
+        preconditioner   DIC;
+        tolerance        1e-05;
+        relTol           0;
+    }
+
+    // Pressão normal
+    "(p|pFinal)"
+    {
+        solver           PBiCGStab;
+        preconditioner   DIC;
+        tolerance        1e-06;
+        relTol           0.01;
+    }
+
+    "(p|pFinal)Final"
+    {
+        $p;
+        relTol           0;
+    }
+
+    // Velocidade e Turbulência
+    "(U|k|epsilon|omega)"
+    {
+        solver           smoothSolver;
+        smoother         symGaussSeidel;
+        tolerance        1e-06;
+        relTol           0.1;
+    }
+
+    "(U|k|epsilon|omega)Final"
+    {
+        $U;
+        relTol           0;
+    }
+}
+
+PIMPLE
+{
+    momentumPredictor   yes;
+    
+    // Configurações de estabilidade do documento (Caso 1)
+    nOuterCorrectors    2; 
+    nCorrectors         3; 
+    nNonOrthogonalCorrectors 4; 
+    
+    // Relaxamento agressivo para garantir que não exploda
+    relaxationFactors
+    {
+        fields
+        {
+            p               0.3;
+            pFinal          1.0;
+        }
+        equations
+        {
+            U               0.3; 
+            k               0.3;
+            epsilon         0.3;
+            omega           0.3;
+            "U.*Final"      1.0; 
+            "k.*Final"      1.0;
+            "epsilon.*Final" 1.0;
+        }
+    }
+}
+
+// ************************************************************************* //
