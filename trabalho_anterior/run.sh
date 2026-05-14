@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export WM_PROJECT_DIR=/usr/share/openfoam
+export FOAM_ETC=/usr/share/openfoam/etc
+
+if [ -f /usr/share/openfoam/etc/bashrc ] && [ -x /usr/share/openfoam/bin/foamEtcFile ]; then
+  # shellcheck source=/usr/share/openfoam/etc/bashrc
+  source /usr/share/openfoam/etc/bashrc
+fi
+
 NP=6
 MPI_EXEC="/usr/bin/mpirun"
 MPI_FLAGS="--oversubscribe"
@@ -23,6 +31,11 @@ find . -maxdepth 1 -type d -regextype posix-extended \
 if [ ! -d "0" ] && [ -d "0.orig" ]; then
   echo "Restaurando pasta 0 a partir de 0.orig"
   cp -r 0.orig 0
+fi
+
+if [ ! -d "0" ] && [ -d "zero.org" ]; then
+  echo "Restaurando pasta 0 a partir de zero.org"
+  cp -r zero.org 0
 fi
 
 echo "Decompondo para $NP processos"
