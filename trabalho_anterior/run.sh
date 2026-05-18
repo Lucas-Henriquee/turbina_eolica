@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export WM_PROJECT_DIR=/usr/share/openfoam
-export FOAM_ETC=/usr/share/openfoam/etc
-
-if [ -f /usr/share/openfoam/etc/bashrc ] && [ -x /usr/share/openfoam/bin/foamEtcFile ]; then
-  # shellcheck source=/usr/share/openfoam/etc/bashrc
-  source /usr/share/openfoam/etc/bashrc
+set +eu
+# Carrega o ambiente completo do OpenFOAM
+FOAM_BASHRC=$(find /usr/lib/openfoam /usr/share/openfoam -name bashrc 2>/dev/null | head -1)
+if [ -z "$FOAM_BASHRC" ]; then
+    echo "❌ OpenFOAM bashrc não encontrado!"
+    exit 1
 fi
+source "$FOAM_BASHRC"
+echo "✅ OpenFOAM carregado de: $FOAM_BASHRC"
+set -eu
 
 NP=6
 MPI_EXEC="/usr/bin/mpirun"
@@ -39,8 +42,7 @@ if [ ! -d "0" ] && [ -d "zero.org" ]; then
 fi
 
 echo "Decompondo para $NP processos"
-decomposePar -copyZero -force > log.decompose 2>&1
-
+decomposePar -force > log.decompose 2>&1
 
 echo "Rodando $SOLVER em paralelo..."
 $MPI_EXEC $MPI_FLAGS -np "$NP" "$SOLVER" -parallel 2>&1 \
@@ -66,3 +68,6 @@ $MPI_EXEC $MPI_FLAGS -np "$NP" "$SOLVER" -parallel 2>&1 \
     ' > "$LOG_KEY"
 
 echo "Fim. Acompanhe com: tail -f $LOG_KEY"
+
+echo "Reconstruindo resultados para visualização"
+reconstructPar > log.reconstruct 2>&1

@@ -1,15 +1,16 @@
 #!/bin/bash
-set -e
 
 # Ambiente minimo do OpenFOAM para utilitarios como blockMesh encontrarem etc/controlDict
-export WM_PROJECT_DIR=/usr/share/openfoam
-export FOAM_ETC=/usr/share/openfoam/etc
-
-# Se houver bashrc funcional, carrega configuracoes adicionais (nao obrigatorio)
-if [ -f /usr/share/openfoam/etc/bashrc ] && [ -x /usr/share/openfoam/bin/foamEtcFile ]; then
-	# shellcheck source=/usr/share/openfoam/etc/bashrc
-	source /usr/share/openfoam/etc/bashrc
+set +e
+# Carrega o ambiente completo do OpenFOAM
+FOAM_BASHRC=$(find /usr/lib/openfoam /usr/share/openfoam -name bashrc 2>/dev/null | head -1)
+if [ -z "$FOAM_BASHRC" ]; then
+    echo "❌ OpenFOAM bashrc não encontrado!"
+    exit 1
 fi
+source "$FOAM_BASHRC"
+echo "✅ OpenFOAM carregado de: $FOAM_BASHRC"
+set -e
 
 # --- CONFIGURAÇÕES RYZEN 5 5600G ---
 NP=6
@@ -27,7 +28,13 @@ blockMesh > log.blockMesh
 # surfaceFeatures > log.surfaceFeatures
 
 echo "✂️  3. Decompondo para snappyHexMesh"
-decomposePar -force > log.decomposePar
+decomposePar -force > log.decomposePar 2>&1
+
+echo "📁 3.5 Copiando geometrias STL para processadores"
+for i in $(seq 0 $((NP-1))); do
+    mkdir -p processor${i}/constant/triSurface
+    cp -r constant/triSurface/* processor${i}/constant/triSurface/
+done
 
 echo "🔷 4. snappyHexMesh (Paralelo)"
 # Sem a flag --use-hwthread-cpus para evitar warnings
