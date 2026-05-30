@@ -1,0 +1,35 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      createBafflesDict;
+}
+
+internalFacesOnly true;
+
+baffles
+{
+    rotatingInterface
+    {
+        type        faceZone;
+        zoneName    cylinder;
+
+        patches
+        {
+            master
+            {
+                name            AMI1;
+                type            cyclicAMI;
+                neighbourPatch  AMI2;
+            }
+
+            slave
+            {
+                name            AMI2;
+                type            cyclicAMI;
+                neighbourPatch  AMI1;
+            }
+        }
+    }
+}
