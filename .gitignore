@@ -1,4 +1,4 @@
-# Diretórios de tempo
+# OpenFOAM - diretórios de tempo
 [1-9]*/
 0.*
 
@@ -7,19 +7,18 @@
 0/pointLevel
 0/cellToRegion
 
-# Pós-processamento
+# OpenFOAM - malha e pós-processamento
 postProcessing/
 VTK/
 
-# MPI
-processor*/
-
-# Malha gerada
 constant/polyMesh/
 constant/extendedFeatureEdgeMesh/
 
 # Features extraídas
 constant/triSurface/*.eMesh
+
+# MPI
+processor*/
 
 # ParaView
 *.foam
@@ -27,17 +26,19 @@ constant/triSurface/*.eMesh
 
 # Logs
 log.*
+logs/
+
+# Execuções arquivadas
+runs/
+
+# Python
+results/
+__pycache__/
+*.pyc
 
 # Dumps
 core
 core.*
-
-# Resultados Python
-results/
-
-# Cache Python
-**pycache**/
-*.pyc
 
 # Editores
 .vscode/

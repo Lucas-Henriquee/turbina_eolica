@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# run_serial.sh — pipeline completo: malha + simulação serial.
-# Uso: ./run_serial.sh
-
 set -euo pipefail
 
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib_foam.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/lib_foam.sh"
 
 check_env
 
@@ -17,8 +14,8 @@ run_step snappyHexMesh -overwrite
 run_step createBaffles -overwrite
 run_step checkMesh
 
+rm -f 0/cellLevel 0/pointLevel 0/cellToRegion
+
 run_solver_serial
 
-archive_logs
-
-touch windTurbineCase.foam
+archive_run
