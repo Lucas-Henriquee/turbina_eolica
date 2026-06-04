@@ -260,11 +260,6 @@ run_solver_parallel() {
         local end
         end=$(date +%s)
         local elapsed=$((end - start))
-
-        echo "  solver concluído  →  ${log}"
-        echo "  tempo total: ${elapsed} s"
-        echo ""
-
     else
 
         echo ""
@@ -295,6 +290,7 @@ run_solver_parallel() {
 
     rm -rf processor*
 
-    echo "  processor* removidos"
+    echo "  solver concluído  →  ${log}"
+    echo "  tempo total: ${elapsed} s"
     echo ""
 }
