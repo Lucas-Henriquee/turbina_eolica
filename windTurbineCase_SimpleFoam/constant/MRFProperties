@@ -1,0 +1,22 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      MRFProperties;
+}
+
+MRF1
+{
+    active          yes;
+
+    cellZone        cylinder;
+
+    nonRotatingPatches
+    (
+    );
+
+    origin          (0 0 0);
+    axis            (0 1 0);
+    omega           -25.5;
+}
