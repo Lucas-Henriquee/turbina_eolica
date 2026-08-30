@@ -15,7 +15,7 @@ geometry
     propeller
     {
         type triSurfaceMesh;
-        file "propeller.stl";
+        file "propeller_new.stl";
     }
 
     cylinder
@@ -37,8 +37,8 @@ castellatedMeshControls
     features
     (
         {
-            file "propeller.eMesh";
-            level 2;
+            file "propeller_new.eMesh";
+            level 3;
         }
         {
             file "cylinder.eMesh";
@@ -74,6 +74,17 @@ castellatedMeshControls
 
     refinementRegions
     {
+        propeller
+        {
+            mode distance;
+            levels
+            (
+                (0.005  4)
+                (0.015  3)
+                (0.030  2)
+            );
+        }
+
         cylinder
         {
             mode inside;
@@ -88,7 +99,7 @@ castellatedMeshControls
 snapControls
 {
     nSmoothPatch        3;
-    tolerance           2.0;
+    tolerance           0.7;
     nSolveIter          30;
     nRelaxIter          5;
     nFeatureSnapIter    10;

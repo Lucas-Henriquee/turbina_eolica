@@ -43,3 +43,7 @@ core.*
 # Editores
 .vscode/
 .history/
+
+# e.Mesh
+*.eMesh/
+*.obj/

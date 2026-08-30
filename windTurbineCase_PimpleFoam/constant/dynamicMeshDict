@@ -1,3 +1,11 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM                                        |
+|  \\    /   O peration     |                                                 |
+|   \\  /    A nd           |                                                 |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
 FoamFile
 {
     version     2.0;
@@ -6,22 +14,85 @@ FoamFile
     object      dynamicMeshDict;
 }
 
-dynamicFvMesh   dynamicMotionSolverFvMesh;
+// Região interna móvel; domínio externo permanece estacionário
+dynamicFvMesh   dynamicMultiMotionSolverFvMesh;
 
-motionSolverLibs ( "libfvMotionSolvers.so" );
-
-solver          solidBody;
-
-solidBodyCoeffs
+dynamicMultiMotionSolverFvMeshCoeffs
 {
-    cellZone        cylinder;
-
-    solidBodyMotionFunction rotatingMotion;
-
-    rotatingMotionCoeffs
+    rotor
     {
-        origin      (0 0 0);
-        axis        (0 1 0);
-        omega       -25.5;
+        // Região da malha que efetivamente será movimentada
+        cellZone cylinder;
+
+        solver sixDoFRigidBodyMotion;
+
+        sixDoFRigidBodyMotionCoeffs
+        {
+            // Superfície usada para calcular forças e momentos
+            patches (propeller);
+
+            // Todo o cylinder deve se comportar praticamente
+            // como uma região rígida
+            innerDistance 0.40;
+            outerDistance 0.50;
+
+            // Propriedades calculadas para propeller_new.stl
+            // assumindo PLA sólido com rho = 1240 kg/m3
+            centreOfMass
+            (
+                0
+                0.001462
+                0
+            );
+
+            mass 0.883075;
+
+            momentOfInertia
+            (
+                0.000570001
+                0.010429824
+                0.010440584
+            );
+
+            // Caso incompressível
+            rho     rhoInf;
+            rhoInf  1.225;
+
+            // Sem gravidade neste primeiro teste
+            g (0 0 0);
+
+            report on;
+
+            // Relaxação conservadora para o primeiro teste
+            accelerationRelaxation 1.0;
+            accelerationDamping    1.0;
+
+            // Integração do movimento
+            solver
+            {
+                type  Newmark;
+                gamma 0.5;
+                beta  0.25;
+            }
+
+            constraints
+            {
+                // Impede qualquer translação do eixo
+                fixedCentre
+                {
+                    sixDoFRigidBodyMotionConstraint point;
+                    centreOfRotation (0 0 0);
+                }
+
+                // Permite rotação exclusivamente em Y
+                rotationY
+                {
+                    sixDoFRigidBodyMotionConstraint axis;
+                    axis (0 1 0);
+                }
+            }
+        }
     }
 }
+
+// ************************************************************************* //

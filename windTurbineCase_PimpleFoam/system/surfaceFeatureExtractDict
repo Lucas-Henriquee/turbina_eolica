@@ -6,7 +6,7 @@ FoamFile
     object      surfaceFeatureExtractDict;
 }
 
-propeller.stl
+propeller_new.stl
 {
     extractionMethod    extractFromSurface;
 

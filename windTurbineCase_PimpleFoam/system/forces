@@ -32,7 +32,7 @@ functions
         dragDir         (0 1 0);
         pitchAxis       (0 1 0);
 
-        magUInf         3.3;
+        magUInf         6.0;
         lRef            0.70;
         Aref            0.3848;
 
