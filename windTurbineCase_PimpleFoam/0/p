@@ -33,7 +33,7 @@ boundaryField
     }
     sides
     {
-        type            zeroGradient;
+        type            symmetry;
     }
     propeller
     {

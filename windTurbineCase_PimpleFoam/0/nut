@@ -34,12 +34,12 @@ boundaryField
     }
     sides
     {
-        type            nutkWallFunction;
-        value           uniform 0;
+        type            symmetry;
     }
     propeller
     {
         type            nutkWallFunction;
+        blending        stepwise;
         value           uniform 0;
     }
     AMI1

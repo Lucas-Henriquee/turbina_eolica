@@ -35,12 +35,13 @@ boundaryField
     }
     sides
     {
-        type            omegaWallFunction;
-        value           uniform 15;
+        type            symmetry;
     }
     propeller
     {
         type            omegaWallFunction;
+        blending        binomial;
+        n               2;
         value           uniform 15;
     }
     AMI1

@@ -63,8 +63,9 @@ dynamicMultiMotionSolverFvMeshCoeffs
 
             report on;
 
-            // Relaxação conservadora para o primeiro teste
-            accelerationRelaxation 1.0;
+            // Sub-relaxacao do acoplamento fluido-corpo para maior robustez numerica.
+            // 1.0 = sem sub-relaxacao; 0.7 suaviza a atualizacao da aceleracao.
+            accelerationRelaxation 0.7;
             accelerationDamping    1.0;
 
             // Integração do movimento
@@ -91,6 +92,22 @@ dynamicMultiMotionSolverFvMeshCoeffs
                     axis (0 1 0);
                 }
             }
+
+            restraints
+            {
+                // Atrito viscoso equivalente no eixo:
+                // M_d = -c * omega
+                // Unidade de c: N.m.s/rad
+                // VALOR PROVISORIO: deve ser calibrado quando houver dados
+                // experimentais do eixo/rolamentos. Em omega=30 rad/s,
+                // c=1e-4 produz aproximadamente 0.003 N.m de torque resistente.
+                shaftViscousDamping
+                {
+                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
+                    coeff 1.0e-4;
+                }
+            }
+
         }
     }
 }

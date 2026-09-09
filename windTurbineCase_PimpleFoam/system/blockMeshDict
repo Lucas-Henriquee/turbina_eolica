@@ -8,10 +8,12 @@ FoamFile
 
 scale 1;
 
-// Diâmetro da hélice D ≈ 0.436 m
-// Upstream   : 5D  ≈ 2.2 m  → y = -2.2
-// Downstream : 10D ≈ 4.4 m  → y = +4.4
-// Lateral    : 5D  ≈ 1.1 m  → x,z = ±1.1
+// Diâmetro da hélice atual D ≈ 0.480 m
+// Distâncias reais a partir do centro do rotor:
+// Upstream   : 2.2 m ≈ 4.58D  → y = -2.2
+// Downstream : 4.4 m ≈ 9.17D  → y = +4.4
+// Lateral    : 1.1 m ≈ 2.29D  → x,z = ±1.1
+// OBS.: manter este domínio por enquanto e realizar teste de independência do domínio.
 
 vertices
 (
@@ -52,7 +54,7 @@ boundary
 
     sides
     {
-        type wall;
+        type symmetry;
         faces
         (
             (0 4 7 3)  // x = -1.1

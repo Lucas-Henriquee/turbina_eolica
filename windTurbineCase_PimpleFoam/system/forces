@@ -32,11 +32,26 @@ functions
         dragDir         (0 1 0);
         pitchAxis       (0 1 0);
 
+        // Referencias da helice atual (R = 0.24 m, D = 0.48 m).
+        // Para o coeficiente de torque de turbina, usa-se R como comprimento
+        // de referencia: C_Q = T/(0.5*rho*A*U^2*R).
+        // magUInf permanece 6 m/s como velocidade nominal maxima;
+        // durante as rampas, os coeficientes nao sao coeficientes instantaneos.
         magUInf         6.0;
-        lRef            0.70;
-        Aref            0.3848;
+        lRef            0.24;
+        Aref            0.180956;
 
         writeControl    timeStep;
         writeInterval   10;
+    }
+
+    yPlusRotor
+    {
+        type            yPlus;
+        libs            (fieldFunctionObjects);
+        useWallFunction true;
+        writeFields     false;
+        writeControl    runTime;
+        writeInterval   0.2;
     }
 }

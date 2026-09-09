@@ -35,8 +35,7 @@ boundaryField
     }
     sides
     {
-        type            kqRWallFunction;
-        value           uniform 0.02;
+        type            symmetry;
     }
     propeller
     {

@@ -18,24 +18,29 @@ FoamFile
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (0 6.0 0);
+internalField   uniform (0 0 0);
 
 boundaryField
 {
     inlet
     {
-        type            fixedValue;
-        value           uniform (0 6.0 0);
+        type            uniformFixedValue;
+        uniformValue    tableFile;
+        uniformValueCoeffs
+        {
+            file            "$FOAM_CASE/constant/inletVelocityProfile.dat";
+        }
+        value           uniform (0 0 0);
     }
     outlet
     {
         type            inletOutlet;
-        inletValue      uniform (0 6.0 0);
-        value           uniform (0 6.0 0);
+        inletValue      uniform (0 0 0);
+        value           uniform (0 0 0);
     }
     sides
     {
-        type            slip;
+        type            symmetry;
     }
     propeller
     {
