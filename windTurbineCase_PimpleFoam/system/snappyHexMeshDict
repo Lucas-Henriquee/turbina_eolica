@@ -27,8 +27,8 @@ geometry
 
 castellatedMeshControls
 {
-    maxLocalCells       1000000;
-    maxGlobalCells      5000000;
+    maxLocalCells       5000000;
+    maxGlobalCells      20000000;
     minRefinementCells  10;
     nCellsBetweenLevels 3;
 
@@ -38,7 +38,7 @@ castellatedMeshControls
     (
         {
             file "propeller_new.eMesh";
-            level 3;
+            level 6;
         }
         {
             file "cylinder.eMesh";
@@ -50,7 +50,7 @@ castellatedMeshControls
     {
         propeller
         {
-            level (2 3);
+            level (4 5);
             patchInfo
             {
                 type wall;
