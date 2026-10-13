@@ -23,13 +23,26 @@ geometry
         type triSurfaceMesh;
         file "cylinder.stl";
     }
+    hubBladeRootLeft
+    {
+        type searchableBox;
+        min (-0.04  0.0 -0.05);
+        max (-0.03  0.08  0.05);
+    }
+
+    hubBladeRootRight
+    {
+        type searchableBox;
+        min ( 0.03  0.0 -0.05);
+        max ( 0.04  0.08  0.05);
+    }
 }
 
 castellatedMeshControls
 {
     maxLocalCells       1000000;
     maxGlobalCells      5000000;
-    minRefinementCells  10;
+    minRefinementCells  8;
     nCellsBetweenLevels 3;
 
     locationInMesh (0.0 -1.0 0.0);
@@ -50,7 +63,7 @@ castellatedMeshControls
     {
         propeller
         {
-            level (4 4);
+            level (3 4);
             patchInfo
             {
                 type wall;
@@ -79,31 +92,50 @@ castellatedMeshControls
             mode distance;
             levels
             (
+                (0.001  5)
                 (0.005  4)
                 (0.015  3)
-                (0.030  2)
             );
         }
-
         cylinder
         {
             mode inside;
-            levels ((1E15 1));
+            levels
+            (
+                (1E15  1)
+            );
+        }
+        hubBladeRootLeft
+        {
+            mode inside;
+            levels 
+            (
+                (1E15 6)
+            );
+        }
+
+        hubBladeRootRight
+        {
+            mode inside;
+            levels 
+            (
+                (1E15 6)
+            );
         }
     }
 
-    resolveFeatureAngle 30;
+    resolveFeatureAngle 20;
     allowFreeStandingZoneFaces true;
 }
 
 snapControls
 {
     nSmoothPatch        3;
-    tolerance           0.7;
-    nSolveIter          30;
-    nRelaxIter          5;
-    nFeatureSnapIter    10;
-    implicitFeatureSnap false;
+    tolerance           1.0;
+    nSolveIter          60;
+    nRelaxIter          8;
+    nFeatureSnapIter    20;
+    implicitFeatureSnap true;
     explicitFeatureSnap true;
     multiRegionFeatureSnap false;
 }
@@ -127,8 +159,8 @@ addLayersControls
     featureAngle         60;
     nRelaxIter           3;
     nSmoothSurfaceNormals 1;
-    nSmoothNormals       3;
-    nSmoothThickness     10;
+    nSmoothNormals       5;  
+    nSmoothThickness     20; 
     maxFaceThicknessRatio 0.5;
     maxThicknessToMedialRatio 0.3;
     minMedialAxisAngle   90;
@@ -138,7 +170,7 @@ addLayersControls
 
 meshQualityControls
 {
-    maxNonOrtho         65;
+    maxNonOrtho         75;
     maxBoundarySkewness 20;
     maxInternalSkewness 4;
     maxConcave          80;
@@ -151,7 +183,7 @@ meshQualityControls
     minVolRatio         0.01;
     minTriangleTwist    -1;
     nSmoothScale        4;
-    errorReduction      0.75;
+    errorReduction      0.5;
 }
 
 writeFlags
