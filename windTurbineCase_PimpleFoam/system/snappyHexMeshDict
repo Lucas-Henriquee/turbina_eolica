@@ -23,19 +23,6 @@ geometry
         type triSurfaceMesh;
         file "cylinder.stl";
     }
-    hubBladeRootLeft
-    {
-        type searchableBox;
-        min (-0.04  0.0 -0.05);
-        max (-0.03  0.08  0.05);
-    }
-
-    hubBladeRootRight
-    {
-        type searchableBox;
-        min ( 0.03  0.0 -0.05);
-        max ( 0.04  0.08  0.05);
-    }
 }
 
 castellatedMeshControls
@@ -103,23 +90,6 @@ castellatedMeshControls
             levels
             (
                 (1E15  1)
-            );
-        }
-        hubBladeRootLeft
-        {
-            mode inside;
-            levels 
-            (
-                (1E15 6)
-            );
-        }
-
-        hubBladeRootRight
-        {
-            mode inside;
-            levels 
-            (
-                (1E15 6)
             );
         }
     }
