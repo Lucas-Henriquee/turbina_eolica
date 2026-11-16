@@ -1,0 +1,8 @@
+# Python: simulações e ferramentas do firmware.
+PyYAML>=6.0
+numpy>=1.24
+matplotlib>=3.6
+platformio>=6.2,<7
+
+# Dashboard: Node.js >=22; dependências em dashboard/package-lock.json.
+# Simulações: OpenFOAM 2512 e MPI instalados no sistema.

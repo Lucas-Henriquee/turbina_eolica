@@ -1,0 +1,33 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+solvers
+{
+{{solver_dictionaries}}
+}
+
+// Acoplamento pressão-velocidade.
+PIMPLE
+{
+    momentumPredictor {{numerics_momentumPredictor}};
+    nOuterCorrectors {{numerics_nOuterCorrectors}};
+    nCorrectors {{numerics_nCorrectors}};
+    nNonOrthogonalCorrectors {{numerics_nNonOrthogonalCorrectors}};
+}
+
+// Relaxação dos campos e equações.
+relaxationFactors
+{
+    fields      { p  {{relaxation_p}}; }
+    equations
+    {
+        U     {{relaxation_U}};
+        k     {{relaxation_k}};
+        omega {{relaxation_omega}};
+    }
+}

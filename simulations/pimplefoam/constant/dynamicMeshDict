@@ -1,0 +1,93 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM                                        |
+|  \\    /   O peration     |                                                 |
+|   \\  /    A nd           |                                                 |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+
+dynamicFvMesh   dynamicMultiMotionSolverFvMesh;
+
+dynamicMultiMotionSolverFvMeshCoeffs
+{
+    rotor
+    {
+
+        // Restringe o movimento à zona cilíndrica.
+        cellZone cylinder;
+
+        solver sixDoFRigidBodyMotion;
+
+        sixDoFRigidBodyMotionCoeffs
+        {
+
+            patches (propeller);
+
+            innerDistance 0.36;
+            outerDistance 0.46;
+
+            centreOfMass
+            (4.41986008343e-09 0.0131420235794 3.33069234091e-09);
+
+            mass 0.117451266141;
+            orientation (0.99995598397 1.94875246428e-09 -0.00938243691236 -1.54046337343e-10 1 2.06432907217e-07 0.00938243691236 -1.91292743557e-07 0.99995598397);
+            initialOrientation (0.99995598397 1.94875246428e-09 -0.00938243691236 -1.54046337343e-10 1 2.06432907217e-07 0.00938243691236 -1.91292743557e-07 0.99995598397);
+
+            momentOfInertia
+            (7.62481236749e-06 0.00166673729955 0.00166858597583);
+
+            rho     rhoInf;
+            rhoInf  1.225;
+
+            g (0 0 0);
+
+            report on;
+
+            accelerationRelaxation 0.7;
+            accelerationDamping    1;
+
+            solver
+            {
+                type Newmark;
+                gamma 0.5;
+                beta 0.25;
+            }
+
+            // Centro fixo; rotação no eixo Y.
+            constraints
+            {
+
+                fixedCentre
+                {
+                    sixDoFRigidBodyMotionConstraint point;
+                    centreOfRotation (0 0 0);
+                }
+
+                rotationY
+                {
+                    sixDoFRigidBodyMotionConstraint axis;
+                    axis (0 1 0);
+                }
+            }
+
+            restraints
+            {
+
+                shaftViscousDamping
+                {
+                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
+                    coeff 0.0001;
+                }
+            }
+
+        }
+    }
+}

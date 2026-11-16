@@ -1,0 +1,31 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      surfaceFeatureExtractDict;
+}
+
+"{{rotor_file}}"
+{
+    extractionMethod    extractFromSurface;
+
+    extractFromSurfaceCoeffs
+    {
+        includedAngle   {{mesh_feature_included_angle}};
+    }
+
+    writeObj            yes;
+}
+
+"{{cylinder_file}}"
+{
+    extractionMethod    extractFromSurface;
+
+    extractFromSurfaceCoeffs
+    {
+        includedAngle   {{mesh_feature_included_angle}};
+    }
+
+    writeObj            yes;
+}

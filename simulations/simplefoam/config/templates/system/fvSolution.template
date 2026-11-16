@@ -1,0 +1,36 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object fvSolution;
+}
+
+solvers
+{
+{{solver_dictionaries}}
+}
+
+// Critérios de parada do SIMPLE.
+SIMPLE
+{
+    nNonOrthogonalCorrectors {{non_orthogonal_correctors}};
+    residualControl
+    {
+        p {{residual_p}};
+        U {{residual_U}};
+        k {{residual_k}};
+        omega {{residual_omega}};
+    }
+}
+
+relaxationFactors
+{
+    fields { p {{relaxation_p}}; }
+    equations
+    {
+        U {{relaxation_U}};
+        k {{relaxation_k}};
+        omega {{relaxation_omega}};
+    }
+}

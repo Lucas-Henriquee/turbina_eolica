@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#111315" />
+    <title>Wind Turbine · Bench</title>
+    <link rel="stylesheet" href="/dashboard.css" />
+  </head>
+  <body>
+    <aside>
+      <a class="brand" href="/" aria-label="Wind Turbine home">
+        <svg viewBox="0 0 36 36" aria-hidden="true">
+          <circle cx="18" cy="18" r="15.5" />
+          <path d="M18 18 20 5M18 18 6 23M18 18 28 27" />
+          <circle cx="18" cy="18" r="2.5" />
+        </svg>
+        <span>Wind Turbine<small>BENCH INSTRUMENTS</small></span>
+      </a>
+      <div class="workspace-label"><span class="status-dot"></span> Acquisition workspace</div>
+      <div class="history-heading">
+        <h2>Saved runs <span id="historyCount" class="count">0</span></h2>
+        <button
+          id="refreshHistory"
+          class="icon-button quiet"
+          title="Refresh history"
+          aria-label="Refresh history"
+        >
+          ↻
+        </button>
+      </div>
+      <label class="search-label"
+        ><span class="sr-only">Search saved runs</span
+        ><input id="historySearch" type="search" placeholder="Search runs…"
+      /></label>
+      <div id="history"><p class="muted">No saved runs.</p></div>
+      <div class="sidebar-note">
+        <span class="local-icon">↳</span>
+        <div>Stored on this computer<small>Named runs · CSV export</small></div>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">WIND TURBINE / EXPERIMENTAL BENCH</p>
+          <h1>Acquisition overview<span class="title-dot">.</span></h1>
+          <p class="subtitle">A clear view of every revolution.</p>
+        </div>
+        <span id="sourceBadge" class="badge">Disconnected</span>
+      </header>
+      <section class="connection panel" aria-label="Connection">
+        <div class="section-marker">01 <span>SOURCE</span></div>
+        <label
+          >Data source<select id="source">
+            <option value="demo">Demo · generated data</option>
+            <option value="usb" selected>USB · ESP32</option>
+          </select></label
+        >
+        <label class="port-label"
+          >Serial port<select id="port">
+            <option value="">Select port</option>
+          </select></label
+        >
+        <button
+          id="refreshPorts"
+          class="quiet icon-button"
+          title="Refresh ports"
+          aria-label="Refresh ports"
+        >
+          ↻
+        </button>
+        <button id="connect">Connect <span aria-hidden="true">↗</span></button
+        ><button id="disconnect" class="quiet" disabled>Disconnect</button>
+      </section>
+      <div class="message-line">
+        <span id="message" role="status">Ready. Connect a source to begin.</span
+        ><span class="sample-rate">DEVICE TIME · LIVE STREAM</span>
+      </div>
+      <section class="readings" aria-label="Measurements">
+        <div class="gauge-card panel">
+          <div class="card-heading">
+            <span>Rotational speed</span><span class="micro-label">HALL / RPM</span>
+          </div>
+          <div class="gauge">
+            <svg viewBox="0 0 260 205" aria-hidden="true">
+              <path class="gauge-ticks" d="M36 164 A108 108 0 1 1 224 164" pathLength="100" />
+              <path class="gauge-track" d="M47 158 A96 96 0 1 1 213 158" />
+              <path id="gaugeFill" d="M47 158 A96 96 0 1 1 213 158" pathLength="100" />
+              <line id="needle" x1="130" y1="110" x2="62" y2="149" />
+              <circle cx="130" cy="110" r="6" class="needle-center" />
+              <text x="29" y="185">0</text>
+              <text id="gaugeMax" x="208" y="185">300</text>
+            </svg>
+            <div class="gauge-value">
+              <strong id="rpm">--</strong><span>REVOLUTIONS / MIN</span>
+            </div>
+          </div>
+          <div class="gauge-footer">
+            <span
+              ><i id="hallDot" class="status-dot"></i>
+              <span id="hallState">Waiting for sensor</span></span
+            ><span>Magnitude</span>
+          </div>
+        </div>
+        <div class="metrics">
+          <article class="metric panel">
+            <div class="card-heading">
+              <span>Load voltage</span><span class="metric-symbol">V</span>
+            </div>
+            <div class="metric-value"><strong id="voltage">--</strong><small>V</small></div>
+            <svg
+              id="voltageTrend"
+              class="sparkline"
+              viewBox="0 0 240 32"
+              preserveAspectRatio="none"
+              aria-label="Voltage trend"
+            ></svg>
+            <div class="metric-note">INA219 <span>LOAD SIDE</span></div>
+          </article>
+          <article class="metric panel">
+            <div class="card-heading"><span>Current</span><span class="metric-symbol">A</span></div>
+            <div class="metric-value"><strong id="current">--</strong><small>A</small></div>
+            <svg
+              id="currentTrend"
+              class="sparkline"
+              viewBox="0 0 240 32"
+              preserveAspectRatio="none"
+              aria-label="Current trend"
+            ></svg>
+            <div class="metric-note">INA219 <span>SHUNT MEASUREMENT</span></div>
+          </article>
+          <article class="metric panel">
+            <div class="card-heading">
+              <span>Electrical power</span><span class="metric-symbol">W</span>
+            </div>
+            <div class="metric-value"><strong id="power">--</strong><small>W</small></div>
+            <svg
+              id="powerTrend"
+              class="sparkline"
+              viewBox="0 0 240 32"
+              preserveAspectRatio="none"
+              aria-label="Power trend"
+            ></svg>
+            <div class="metric-note">Voltage × current <span>INSTANTANEOUS</span></div>
+          </article>
+          <article class="metric panel">
+            <div class="card-heading">
+              <span>Electrical energy</span><span class="metric-symbol">J</span>
+            </div>
+            <div class="metric-value"><strong id="energy">--</strong><small>J</small></div>
+            <svg
+              id="energyTrend"
+              class="sparkline"
+              viewBox="0 0 240 32"
+              preserveAspectRatio="none"
+              aria-label="Energy trend"
+            ></svg>
+            <div class="metric-note">Valid samples only <span>INTEGRATED</span></div>
+          </article>
+        </div>
+      </section>
+      <section class="plot-section panel">
+        <div class="plot-heading">
+          <div>
+            <p class="eyebrow">SIGNAL EXPLORER</p>
+            <h2 id="plotTitle">Live readings</h2>
+            <p id="plotDetail">Last 60 seconds</p>
+          </div>
+          <div class="chart-controls">
+            <button id="returnLive" class="quiet" hidden>Return to live</button
+            ><select id="plotField" aria-label="Chart measurement">
+              <option value="rpm">RPM</option>
+              <option value="load_voltage_V">Voltage · V</option>
+              <option value="current_A">Current · A</option>
+              <option value="electrical_power_W">Power · W</option></select
+            ><select id="plotWindow" aria-label="Chart time window">
+              <option value="15">15 s</option>
+              <option value="30">30 s</option>
+              <option value="60" selected>60 s</option>
+              <option value="all">All samples</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart" aria-label="Measurement history chart"></canvas
+          ><output id="chartTooltip" hidden></output>
+        </div>
+        <div class="plot-footer">
+          <span class="chart-legend"><i></i><span id="chartLegend">Rotational speed</span></span>
+          <div class="chart-stats">
+            <span>MIN <strong id="chartMin">--</strong></span
+            ><span>AVG <strong id="chartMean">--</strong></span
+            ><span>MAX <strong id="chartMax">--</strong></span>
+          </div>
+        </div>
+      </section>
+      <section class="recording panel">
+        <div class="record-heading">
+          <div>
+            <p class="eyebrow">CAPTURE & EXPORT</p>
+            <h2>Record an experiment</h2>
+          </div>
+          <div class="record-indicator">
+            <span id="recordState">Not recording</span><span id="recordTimer">00:00</span>
+          </div>
+        </div>
+        <div class="run-form">
+          <label
+            >Run name<input
+              id="runName"
+              maxlength="80"
+              placeholder="e.g. PETG · rotor 01 · test 01"
+              required /></label
+          ><label>Rotor<input id="rotor" maxlength="80" /></label
+          ><label>Material<input id="material" maxlength="40" /></label
+          ><label>Wind · m/s (manual)<input id="wind" type="number" min="0" step="0.1" /></label>
+        </div>
+        <div class="record-actions">
+          <button id="start" disabled><span aria-hidden="true">●</span> Start recording</button
+          ><button id="stop" class="quiet" disabled>Stop & save</button
+          ><span>Choose a name. Every sample is saved to CSV.</span>
+        </div>
+      </section>
+      <footer>
+        <span id="sensorStatus">Hall: -- · Electrical: --</span
+        ><span id="sampleStatus">0 samples</span>
+      </footer>
+    </main>
+    <script type="module" src="/dashboard.js"></script>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     pimpleFoam;
+
+libs
+(
+    "libsixDoFRigidBodyMotion.so"
+);
+
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{time_endTime}};
+
+deltaT          {{time_deltaT}};
+
+writeControl    runTime;
+writeInterval   {{time_writeInterval}};
+
+purgeWrite      0;
+
+adjustTimeStep  {{time_adjustTimeStep}};
+maxCo           {{time_maxCo}};
+maxDeltaT       {{time_maxDeltaT}};
+
+writeFormat     {{time_writeFormat}};
+writePrecision  {{time_writePrecision}};
+writeCompression {{time_writeCompression}};
+
+timeFormat      general;
+timePrecision   {{time_timePrecision}};
+
+runTimeModifiable false;
+
+#include "forces"

@@ -1,0 +1,37 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      k;
+}
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform {{turbulence_k}};
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform {{turbulence_k}};
+    }
+    outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform {{turbulence_k}};
+        value           uniform {{turbulence_k}};
+    }
+    sides
+    {
+        type            kqRWallFunction;
+        value           uniform {{turbulence_k}};
+    }
+    propeller
+    {
+        type            kqRWallFunction;
+        value           uniform {{turbulence_k}};
+    }
+}

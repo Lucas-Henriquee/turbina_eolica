@@ -1,0 +1,164 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      snappyHexMeshDict;
+}
+
+castellatedMesh true;
+snap            true;
+addLayers       {{mesh_layers}};
+
+// Superfícies e região da entrada.
+geometry
+{
+    propeller
+    {
+        type triSurfaceMesh;
+        file "{{rotor_file}}";
+    }
+
+    cylinder
+    {
+        type triSurfaceMesh;
+        file "{{cylinder_file}}";
+    }
+}
+
+// Refinamento volumétrico.
+castellatedMeshControls
+{
+    maxLocalCells       {{mesh_maxLocalCells}};
+    maxGlobalCells      {{mesh_maxGlobalCells}};
+    minRefinementCells  {{mesh_castellated_controls_minRefinementCells}};
+    nCellsBetweenLevels {{mesh_castellated_controls_nCellsBetweenLevels}};
+
+    locationInMesh {{mesh_location}};
+
+    features
+    (
+        {
+            file "{{rotor_feature}}";
+            level {{mesh_rotor_level}};
+        }
+        {
+            file "{{cylinder_feature}}";
+            level {{mesh_cylinder_level}};
+        }
+    );
+
+    refinementSurfaces
+    {
+        propeller
+        {
+            level ({{mesh_rotor_level}} {{mesh_rotor_level}});
+            patchInfo
+            {
+                type wall;
+            }
+        }
+
+        cylinder
+        {
+            level ({{mesh_cylinder_level}} {{mesh_cylinder_level}});
+
+            faceType    internal;
+            faceZone    cylinder;
+            cellZone    cylinder;
+            cellZoneInside inside;
+
+        }
+    }
+
+    refinementRegions
+    {
+        propeller
+        {
+            mode distance;
+            levels
+            (
+                {{mesh_distance_levels}}
+            );
+        }
+
+        cylinder
+        {
+            mode inside;
+            levels ((1E15 {{mesh_cylinder_level}}));
+        }
+    }
+
+    resolveFeatureAngle {{mesh_castellated_controls_resolveFeatureAngle}};
+    allowFreeStandingZoneFaces {{mesh_castellated_controls_allowFreeStandingZoneFaces}};
+}
+
+// Ajuste ao STL.
+snapControls
+{
+    nSmoothPatch        {{mesh_snap_controls_nSmoothPatch}};
+    tolerance           {{mesh_snap_controls_tolerance}};
+    nSolveIter          {{mesh_snap_controls_nSolveIter}};
+    nRelaxIter          {{mesh_snap_controls_nRelaxIter}};
+    nFeatureSnapIter    {{mesh_snap_controls_nFeatureSnapIter}};
+    implicitFeatureSnap {{mesh_snap_controls_implicitFeatureSnap}};
+    explicitFeatureSnap {{mesh_snap_controls_explicitFeatureSnap}};
+    multiRegionFeatureSnap {{mesh_snap_controls_multiRegionFeatureSnap}};
+}
+
+// Camadas próximas à parede.
+addLayersControls
+{
+    relativeSizes {{mesh_layer_controls_relativeSizes}};
+
+    layers
+    {
+        propeller
+        {
+            nSurfaceLayers {{mesh_nlayers}};
+        }
+    }
+
+    expansionRatio       {{mesh_layer_controls_expansionRatio}};
+    finalLayerThickness  {{mesh_layer_controls_finalLayerThickness}};
+    minThickness         {{mesh_layer_controls_minThickness}};
+    nGrow                {{mesh_layer_controls_nGrow}};
+    featureAngle         {{mesh_layer_controls_featureAngle}};
+    nRelaxIter           {{mesh_layer_controls_nRelaxIter}};
+    nSmoothSurfaceNormals {{mesh_layer_controls_nSmoothSurfaceNormals}};
+    nSmoothNormals       {{mesh_layer_controls_nSmoothNormals}};
+    nSmoothThickness     {{mesh_layer_controls_nSmoothThickness}};
+    maxFaceThicknessRatio {{mesh_layer_controls_maxFaceThicknessRatio}};
+    maxThicknessToMedialRatio {{mesh_layer_controls_maxThicknessToMedialRatio}};
+    minMedialAxisAngle   {{mesh_layer_controls_minMedialAxisAngle}};
+    nBufferCellsNoExtrude {{mesh_layer_controls_nBufferCellsNoExtrude}};
+    nLayerIter           {{mesh_layer_controls_nLayerIter}};
+}
+
+// Limites de qualidade.
+meshQualityControls
+{
+    maxNonOrtho         {{mesh_quality_controls_maxNonOrtho}};
+    maxBoundarySkewness {{mesh_quality_controls_maxBoundarySkewness}};
+    maxInternalSkewness {{mesh_quality_controls_maxInternalSkewness}};
+    maxConcave          {{mesh_quality_controls_maxConcave}};
+    minVol              {{mesh_quality_controls_minVol}};
+    minTetQuality       {{mesh_quality_controls_minTetQuality}};
+    minArea             {{mesh_quality_controls_minArea}};
+    minTwist            {{mesh_quality_controls_minTwist}};
+    minDeterminant      {{mesh_quality_controls_minDeterminant}};
+    minFaceWeight       {{mesh_quality_controls_minFaceWeight}};
+    minVolRatio         {{mesh_quality_controls_minVolRatio}};
+    minTriangleTwist    {{mesh_quality_controls_minTriangleTwist}};
+    nSmoothScale        {{mesh_quality_controls_nSmoothScale}};
+    errorReduction      {{mesh_quality_controls_errorReduction}};
+}
+
+writeFlags
+(
+    scalarLevels
+    layerSets
+    layerFields
+);
+
+mergeTolerance {{mesh_merge_tolerance}};

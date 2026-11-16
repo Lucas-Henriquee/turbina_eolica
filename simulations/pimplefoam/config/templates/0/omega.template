@@ -1,0 +1,61 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2512                                  |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      binary;
+    arch        "LSB;label=32;scalar=64";
+    class       volScalarField;
+    location    "0";
+    object      omega;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 -1 0 0 0 0];
+
+internalField   uniform {{turbulence_omega}};
+
+boundaryField
+{
+    fanInlet
+    {
+        type fixedValue;
+        value uniform {{turbulence_omega}};
+    }
+    "(inlet|outlet|sides)"
+    {
+        type inletOutlet;
+        inletValue uniform {{turbulence_omega}};
+        value uniform {{turbulence_omega}};
+    }
+    ground
+    {
+        type omegaWallFunction;
+        value uniform {{turbulence_omega}};
+    }
+    propeller
+    {
+        type            omegaWallFunction;
+        blending        binomial;
+        n               2;
+        value           uniform {{turbulence_omega}};
+    }
+    AMI1
+    {
+        type            cyclicAMI;
+        value           uniform {{turbulence_omega}};
+    }
+    AMI2
+    {
+        type            cyclicAMI;
+        value           uniform {{turbulence_omega}};
+    }
+}
+
+
+// ************************************************************************* //

@@ -1,0 +1,163 @@
+# Unidades SI; vetores [X, Y, Z]; eixo de rotação Y.
+geometry:                                      # Geometria da região MRF.
+  rotor_stl: propeller_test.stl                 # Hélice em constant/triSurface/.
+  cylinder_stl: cylinder.stl                    # Superfície da zona rotativa.
+  cylinder_mode: auto                          # auto gera o cilindro; existing usa o STL.
+  rotation_centre: [0, 0, 0]                    # m; origem da rotação prescrita.
+  cylinder_radial_clearance: 0.06               # m; folga radial até o cilindro.
+  cylinder_axial_clearance: 0.15                # m; folga em cada extremo do eixo Y.
+  cylinder_segments: 128                       # Divisões da circunferência.
+
+fluid:                                        # Propriedades do ar.
+  density: 1.225                               # kg/m³; densidade.
+  nu: 1.5e-5                                   # m²/s; viscosidade cinemática.
+
+initial:                                      # Condições do escoamento.
+  velocity: [0, 3.3, 0]                        # m/s; velocidade inicial e de entrada.
+  pressure: 0.0                                # m²/s²; pressão cinemática inicial.
+
+turbulence:                                   # Turbulência na entrada.
+  model: kOmegaSST                             # Modelo suportado pelos campos atuais.
+  k: 0.02                                      # m²/s²; energia turbulenta.
+  omega: 15.0                                  # 1/s; dissipação específica.
+
+rotation:                                     # Rotação fixa em uma malha parada.
+  angular_velocity: -25.5                      # rad/s; sinal em relação ao eixo Y.
+
+iterations:                                   # Contador numérico, não tempo físico.
+  limit: 5000                                  # Máximo de iterações SIMPLE.
+  write_interval: 500                          # Iterações entre campos para ParaView.
+  runtime_modifiable: false                    # Permite reler dicionários durante o solver.
+
+output:                                       # Registro e análise estacionária.
+  sample_steps: 10                             # Iterações entre registros de forças.
+  average_start_fraction: 0.5                  # Fração inicial descartada na média.
+  min_wind_speed: 0.1                          # m/s; mínimo para calcular coeficientes.
+  plots: true                                  # Gera gráficos após o solver.
+  write_format: binary                        # binary ou ascii; campos do OpenFOAM.
+  write_precision: 6                          # Algarismos dos campos ASCII.
+  write_compression: false                    # Comprime os arquivos de campos.
+  time_precision: 6                           # Algarismos das pastas de iterações.
+
+parallel:                                     # Execução MPI.
+  processes: 6                                 # run_mpi.sh N tem prioridade.
+  method: scotch                               # scotch, simple ou hierarchical.
+  divisions: [3, 2, 1]                         # Partições [X, Y, Z]; simple/hierarchical.
+  order: xyz                                   # Ordem; apenas hierarchical.
+  mpi_test_timeout: 15                        # s; prazo do teste de inicialização MPI.
+
+mesh:        # Domínio e refinamento.
+  bounds: [[-1.1, -2.2, -1.1], [1.1, 4.4, 1.1]]  # m; limites [mínimo XYZ, máximo XYZ].
+  cells: [22, 66, 22]                         # Células-base em [X, Y, Z].
+  location_in_mesh: [0, -1.0, 0]              # m; ponto no fluido externo a preservar.
+  maxLocalCells: 1000000                      # Limite de células por processo no refinamento.
+  maxGlobalCells: 5000000                     # Limite total de células no refinamento.
+  rotor_level: 4                              # Nível na superfície e nas arestas da hélice.
+  cylinder_level: 1                           # Nível na região cilíndrica e sua superfície.
+  distance_levels: [[0.001, 5], [0.005, 4], [0.015, 3]]  # Pares [distância à hélice em m, nível].
+  add_layers: false                           # Ativa camadas de células junto à hélice.
+  surface_layers: 3                           # Número de camadas; usado com add_layers: true.
+  castellated_controls:                       # Refinamento antes do ajuste à superfície.
+    minRefinementCells: 10            # Mínimo de células marcadas para continuar.
+    nCellsBetweenLevels: 3            # Células de transição entre níveis.
+    resolveFeatureAngle: 30           # Graus; ângulo para refinar arestas.
+    allowFreeStandingZoneFaces: true  # Permite faces de zona fora das superfícies.
+  snap_controls:                              # Ajuste da malha ao STL.
+    nSmoothPatch: 3                # Suavizações da superfície antes do ajuste.
+    tolerance: 0.7                 # Distância de atração relativa à aresta local.
+    nSolveIter: 30                 # Iterações para suavizar deslocamentos.
+    nRelaxIter: 5                  # Iterações de relaxação do ajuste.
+    nFeatureSnapIter: 10           # Iterações de ajuste às arestas.
+    implicitFeatureSnap: false     # Detecta arestas pela superfície.
+    explicitFeatureSnap: true      # Usa as arestas extraídas no arquivo .eMesh.
+    multiRegionFeatureSnap: false  # Reconhece arestas entre regiões.
+  layer_controls:                             # Usado apenas com add_layers: true.
+    relativeSizes: true             # Espessuras relativas ao tamanho da célula.
+    expansionRatio: 1.2             # Crescimento da espessura entre camadas.
+    finalLayerThickness: 0.3        # Espessura da camada mais distante da parede.
+    minThickness: 0.1               # Espessura mínima do conjunto de camadas.
+    nGrow: 0                        # Faixas sem camadas ao redor de falhas.
+    featureAngle: 60                # Graus; ângulo limite para adicionar camadas.
+    nRelaxIter: 3                   # Iterações de relaxação da extrusão.
+    nSmoothSurfaceNormals: 1        # Suavizações das normais na superfície.
+    nSmoothNormals: 3               # Suavizações das normais no volume.
+    nSmoothThickness: 10            # Suavizações da espessura das camadas.
+    maxFaceThicknessRatio: 0.5      # Limite espessura/tamanho da face.
+    maxThicknessToMedialRatio: 0.3  # Limite espessura/distância ao eixo medial.
+    minMedialAxisAngle: 90          # Graus; ângulo para identificar o eixo medial.
+    nBufferCellsNoExtrude: 0        # Células de transição no fim das camadas.
+    nLayerIter: 50                  # Limite de iterações para gerar camadas.
+  quality_controls:                           # Limites de qualidade da malha.
+    maxNonOrtho: 65          # Graus; não ortogonalidade máxima.
+    maxBoundarySkewness: 20  # Distorção máxima nas faces de contorno.
+    maxInternalSkewness: 4   # Distorção máxima nas faces internas.
+    maxConcave: 80           # Graus; concavidade máxima das faces.
+    minVol: 1.0e-13          # m³; volume mínimo das pirâmides de face.
+    minTetQuality: 1.0e-15   # Qualidade mínima dos tetraedros de verificação.
+    minArea: -1              # m²; área mínima de face; -1 desativa.
+    minTwist: 0.02           # Alinhamento mínimo face/triângulos.
+    minDeterminant: 0.001    # Determinante normalizado mínimo da célula.
+    minFaceWeight: 0.05      # Peso mínimo de interpolação nas faces.
+    minVolRatio: 0.01        # Razão mínima de volumes entre vizinhos.
+    minTriangleTwist: -1     # Alinhamento entre triângulos; -1 libera.
+    nSmoothScale: 4          # Iterações para distribuir correções de erro.
+    errorReduction: 0.75     # Fator de redução do deslocamento com erro.
+  merge_tolerance: 1.0e-6                     # Tolerância relativa para unir pontos.
+  feature_included_angle: 150                 # Graus; ângulo de extração de arestas do STL.
+
+numerics:                                    # Acoplamento SIMPLE.
+  nNonOrthogonalCorrectors: 2                  # Correções de não ortogonalidade.
+  residual_control:                           # Resíduos iniciais para convergência.
+    p: 1.0e-5                                  # Pressão cinemática.
+    U: 1.0e-6                                  # Maior componente da velocidade.
+    k: 1.0e-6                                  # Energia turbulenta.
+    omega: 1.0e-6                             # Dissipação turbulenta específica.
+  solvers:                     # Sistemas lineares de cada campo.
+    p:      # Pressão cinemática.
+      solver: GAMG           # Algoritmo de solução do sistema linear.
+      smoother: GaussSeidel  # Método de suavização dos resíduos.
+      tolerance: 1.0e-06     # Resíduo absoluto para encerrar o solver.
+      relTol: 0.1            # Resíduo relativo para encerrar o solver.
+      final_relTol: 0        # relTol final; 0 exige o critério absoluto.
+    pcorr:  # Pressão auxiliar para corrigir o fluxo.
+      solver: GAMG           # Algoritmo de solução do sistema linear.
+      smoother: GaussSeidel  # Método de suavização dos resíduos.
+      tolerance: 1.0e-06     # Resíduo absoluto para encerrar o solver.
+      relTol: 0              # Resíduo relativo para encerrar o solver.
+      final_relTol: 0        # relTol final; 0 exige o critério absoluto.
+    U:      # Velocidade do ar.
+      solver: smoothSolver      # Algoritmo de solução do sistema linear.
+      smoother: symGaussSeidel  # Método de suavização dos resíduos.
+      tolerance: 1.0e-06        # Resíduo absoluto para encerrar o solver.
+      relTol: 0.1               # Resíduo relativo para encerrar o solver.
+      final_relTol: 0           # relTol final; 0 exige o critério absoluto.
+    k:      # Energia cinética turbulenta.
+      solver: smoothSolver      # Algoritmo de solução do sistema linear.
+      smoother: symGaussSeidel  # Método de suavização dos resíduos.
+      tolerance: 1.0e-06        # Resíduo absoluto para encerrar o solver.
+      relTol: 0.1               # Resíduo relativo para encerrar o solver.
+      final_relTol: 0           # relTol final; 0 exige o critério absoluto.
+    omega:  # Dissipação turbulenta específica.
+      solver: smoothSolver      # Algoritmo de solução do sistema linear.
+      smoother: symGaussSeidel  # Método de suavização dos resíduos.
+      tolerance: 1.0e-06        # Resíduo absoluto para encerrar o solver.
+      relTol: 0.1               # Resíduo relativo para encerrar o solver.
+      final_relTol: 0           # relTol final; 0 exige o critério absoluto.
+  relaxation:                  # Fatores de relaxação numérica.
+    p: 0.2      # Relaxação do campo de pressão.
+    U: 0.5      # Relaxação da equação de velocidade.
+    k: 0.5      # Relaxação da equação de k.
+    omega: 0.5  # Relaxação da equação de omega.
+
+schemes:     # Discretização das equações.
+  time: steadyState                                 # Caso estacionário; sem tempo físico.
+  gradient: Gauss linear                      # Gradientes dos campos.
+  velocity_gradient: cellLimited Gauss linear 1  # Gradiente de velocidade com limitador.
+  velocity_divergence: bounded Gauss linearUpwind grad(U)  # Transporte convectivo da velocidade.
+  k_divergence: bounded Gauss linearUpwind default  # Transporte convectivo de k.
+  omega_divergence: bounded Gauss linearUpwind default  # Transporte convectivo de omega.
+  viscous_divergence: Gauss linear            # Termo de tensões viscosas.
+  laplacian: Gauss linear corrected           # Termos difusivos e correção geométrica.
+  interpolation: linear                       # Interpolação dos centros para as faces.
+  normal_gradient: corrected                  # Gradiente normal às faces.
+  wall_distance: meshWave                     # Método de cálculo da distância à parede.

@@ -1,0 +1,52 @@
+functions
+{
+    forcesRotor
+    {
+        type            forces;
+        libs            ("libforces.so");
+
+        patches         (propeller);
+
+        rho             rhoInf;
+        rhoInf          {{fluid_density}};
+
+        CofR            {{rotation_centre}};
+
+        writeControl    timeStep;
+        writeInterval   {{output_sample_steps}};
+    }
+
+    forceCoeffsRotor
+    {
+        type            forceCoeffs;
+        libs            ("libforces.so");
+
+        patches         (propeller);
+
+        rho             rhoInf;
+        rhoInf          {{fluid_density}};
+
+        CofR            {{rotation_centre}};
+
+        liftDir         (0 0 1);
+        dragDir         (0 1 0);
+        pitchAxis       (0 1 0);
+        // Referência nominal dos coeficientes.
+        magUInf         {{wind_reference}};
+        lRef            {{rotor_radius}};
+        Aref            {{rotor_area}};
+
+        writeControl    timeStep;
+        writeInterval   {{output_sample_steps}};
+    }
+
+    yPlusRotor
+    {
+        type            yPlus;
+        libs            (fieldFunctionObjects);
+        useWallFunction true;
+        writeFields     false;
+        writeControl    runTime;
+        writeInterval   {{output_yplus_interval}};
+    }
+}

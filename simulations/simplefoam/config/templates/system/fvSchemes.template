@@ -1,0 +1,48 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+
+// Esquemas definidos em config.yaml.
+ddtSchemes
+{
+    default {{schemes_time}};
+}
+
+gradSchemes
+{
+    default         {{schemes_gradient}};
+    grad(U)         {{schemes_velocity_gradient}};
+}
+
+divSchemes
+{
+    default         none;
+    div(phi,U)      {{schemes_velocity_divergence}};
+    div(phi,k)      {{schemes_k_divergence}};
+    div(phi,omega)  {{schemes_omega_divergence}};
+    div((nuEff*dev2(T(grad(U))))) {{schemes_viscous_divergence}};
+}
+
+laplacianSchemes
+{
+    default {{schemes_laplacian}};
+}
+
+interpolationSchemes
+{
+    default {{schemes_interpolation}};
+}
+
+snGradSchemes
+{
+    default {{schemes_normal_gradient}};
+}
+
+wallDist
+{
+    method {{schemes_wall_distance}};
+}

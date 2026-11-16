@@ -1,0 +1,91 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM                                        |
+|  \\    /   O peration     |                                                 |
+|   \\  /    A nd           |                                                 |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+
+dynamicFvMesh   dynamicMultiMotionSolverFvMesh;
+
+dynamicMultiMotionSolverFvMeshCoeffs
+{
+    rotor
+    {
+
+        // Restringe o movimento à zona cilíndrica.
+        cellZone cylinder;
+
+        solver sixDoFRigidBodyMotion;
+
+        sixDoFRigidBodyMotionCoeffs
+        {
+
+            patches (propeller);
+
+            innerDistance {{motion_inner}};
+            outerDistance {{motion_outer}};
+
+            centreOfMass
+            {{body_com}};
+
+            mass {{body_mass}};
+            orientation {{body_orientation}};
+            initialOrientation {{body_orientation}};
+
+            momentOfInertia
+            {{body_inertia}};
+
+            rho     rhoInf;
+            rhoInf  {{fluid_density}};
+
+            g {{motion_gravity}};
+
+            report on;
+
+            accelerationRelaxation {{motion_relaxation}};
+            accelerationDamping    {{motion_damping}};
+
+            solver
+            {
+                {{motion_integration}}
+            }
+
+            // Centro fixo; rotação no eixo Y.
+            constraints
+            {
+
+                fixedCentre
+                {
+                    sixDoFRigidBodyMotionConstraint point;
+                    centreOfRotation {{rotation_centre}};
+                }
+
+                rotationY
+                {
+                    sixDoFRigidBodyMotionConstraint axis;
+                    axis (0 1 0);
+                }
+            }
+
+            restraints
+            {
+
+                shaftViscousDamping
+                {
+                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
+                    coeff {{shaft_damping}};
+                }
+            }
+
+        }
+    }
+}

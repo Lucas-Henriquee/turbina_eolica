@@ -1,0 +1,52 @@
+functions
+{
+    forcesRotor
+    {
+        type            forces;
+        libs            ("libforces.so");
+
+        patches         (propeller);
+
+        rho             rhoInf;
+        rhoInf          1.225;
+
+        CofR            (0 0 0);
+
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+
+    forceCoeffsRotor
+    {
+        type            forceCoeffs;
+        libs            ("libforces.so");
+
+        patches         (propeller);
+
+        rho             rhoInf;
+        rhoInf          1.225;
+
+        CofR            (0 0 0);
+
+        liftDir         (0 0 1);
+        dragDir         (0 1 0);
+        pitchAxis       (0 1 0);
+        // Referência nominal dos coeficientes.
+        magUInf         6;
+        lRef            0.226157144182;
+        Aref            0.160683208674;
+
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+
+    yPlusRotor
+    {
+        type            yPlus;
+        libs            (fieldFunctionObjects);
+        useWallFunction true;
+        writeFields     false;
+        writeControl    runTime;
+        writeInterval   0.2;
+    }
+}

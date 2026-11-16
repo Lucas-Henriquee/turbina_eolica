@@ -1,49 +1,118 @@
-# OpenFOAM - diretórios de tempo
-[1-9]*/
-0.*
-
-# Arquivos gerados pelo snappyHexMesh em 0/
-0/cellLevel
-0/pointLevel
-0/cellToRegion
-
-# OpenFOAM - malha e pós-processamento
+# OpenFOAM: tempos gerados; preserva 0/ e campos iniciais.
+/simulations/*/[1-9]*/
+/simulations/*/0.[0-9]*/
+/simulations/*/0[eE][+-][0-9]*/
+/archive/previous_work/[1-9]*/
+/archive/previous_work/0.[0-9]*/
+/archive/previous_work/0[eE][+-][0-9]*/
+**/0/cellLevel
+**/0/pointLevel
+**/0/cellToRegion
+**/0/uniform/
+**/constant/polyMesh/
+**/constant/extendedFeatureEdgeMesh/
+**/constant/triSurface/*.eMesh
+**/constant/triSurface/*.obj
+processor[0-9]*/
+processors[0-9]*/
 postProcessing/
 VTK/
-
-constant/polyMesh/
-constant/extendedFeatureEdgeMesh/
-
-# Features extraídas
-constant/triSurface/*.eMesh
-
-# MPI
-processor*/
-
-# ParaView
 *.foam
 *.OpenFOAM
+/simulations/*/config.txt
 
-# Logs
-log.*
-logs/
-
-# Execuções arquivadas
+# Execuções, medições e relatórios locais.
 runs/
-
-# Python
 results/
-__pycache__/
-*.pyc
-
-# Dumps
+metadata/
+logs/
+log.*
+*.log
+/dashboard/data/
+*.pid
+*.pid.lock
 core
 core.*
+*.core
 
-# Editores
+# Node.js: dependências, builds e cobertura.
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+/dashboard/dist/
+/dashboard/build/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Python: ambientes, caches e pacotes gerados.
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+.hypothesis/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+.eggs/
+*.egg
+*.whl
+pip-wheel-metadata/
+
+# PlatformIO: compilação, bibliotecas baixadas e caches.
+.pio/
+.pioenvs/
+.piolibdeps/
+compile_commands.json
+/firmware/build/
+/firmware/*.bin
+/firmware/*.elf
+/firmware/*.hex
+
+# Configurações privadas; modelos de ambiente continuam versionados.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.*.example
+!.env.*.sample
+.aws/
+.ssh/
+.codex/
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# Editor, sistema e arquivos temporários.
 .vscode/
+.idea/
 .history/
-
-# e.Mesh
-*.eMesh/
-*.obj/
+.cache/
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
+*.orig
+!**/0.orig/
+!**/0.orig/**
+*.rej

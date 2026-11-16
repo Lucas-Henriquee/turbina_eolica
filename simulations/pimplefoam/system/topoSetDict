@@ -1,0 +1,27 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object topoSetDict;
+}
+// Seleciona as faces da entrada circular.
+actions
+(
+    {
+        name fanFaces;
+        type faceSet;
+        action new;
+        source patchToFace;
+        patches (inlet);
+    }
+    {
+        name fanFaces;
+        type faceSet;
+        action subset;
+        source cylinderToFace;
+        point1 (0 -1.01 0);
+        point2 (0 -0.8 0);
+        radius 0.2;
+    }
+);
