@@ -17,7 +17,7 @@ check_environment() {
     require_commands \
         python3 setsid blockMesh surfaceFeatureExtract snappyHexMesh \
         createBaffles topoSet createPatch checkMesh pimpleFoam \
-        surfaceInertia surfaceCheck
+        surfaceInertia surfaceCheck mergeOrSplitBaffles moveDynamicMesh
 
     if ! python3 -c 'import yaml, numpy, matplotlib' > log.dependencies 2>&1; then
         print_status FAIL "Python dependencies" "log.dependencies" >&2
@@ -49,6 +49,8 @@ create_case_mesh() {
     run_step surfaceFeatureExtract
     run_step snappyHexMesh -overwrite
     run_step createBaffles -overwrite
+    # Desacopla os pontos dos lados fixo e rotativo da AMI.
+    run_step mergeOrSplitBaffles -split -overwrite
     run_step topoSet
     run_step createPatch -overwrite
     # Os campos precisam conhecer o patch recém-criado.
@@ -60,6 +62,7 @@ create_case_mesh() {
         archive_failed_run failed checkMesh || true
         exit 1
     fi
+    run_step_named "Mesh motion check" checkMeshMotion python3 scripts/check_mesh_motion.py
     rm -f \
         0/cellLevel 0/pointLevel 0/cellToRegion \
         0/nSurfaceLayers 0/thickness 0/thicknessFraction

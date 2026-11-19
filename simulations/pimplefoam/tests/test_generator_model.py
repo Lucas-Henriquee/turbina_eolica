@@ -16,6 +16,7 @@ from generator_model import resolve_generator
 from body_corrections import apply_body_corrections
 from config_validation import validate_controls
 from simulation_results import analyze, save_analysis
+from check_mesh_motion import inspect_motion_log
 
 
 class GeneratorModelTests(unittest.TestCase):
@@ -30,6 +31,14 @@ class GeneratorModelTests(unittest.TestCase):
         self.config["generator"]["load_resistance_ohm"] = 20
         self.assertLess(resolve_generator(self.config)["electrical_damping_N_m_s_rad"],
                         model["electrical_damping_N_m_s_rad"])
+
+    def test_motion_check_rejects_invalid_mesh_or_coverage(self):
+        valid = "Mesh OK.\nAMI: Patch source sum(weights) min:0.8 max:1.2 average:1\nEnd\n"
+        self.assertEqual(inspect_motion_log(valid, 0.1), (0.8, 1.2))
+        for invalid in [valid.replace("0.8", "0"), valid + "Failed 1 mesh checks.\n",
+                        valid + "FOAM FATAL ERROR\n", "End\n", valid.replace("End", "")]:
+            with self.assertRaises(ValueError):
+                inspect_motion_log(invalid, 0.1)
 
     def test_invalid_parameters(self):
         for key, value in [("no_load_speed_rpm", 0), ("no_load_current_A", 148),

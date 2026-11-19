@@ -34,6 +34,10 @@ python3 scripts/archive_case.py --status interrupted
 
 Auxiliares em `scripts/`: `case_helpers.sh` prepara o caso e a malha; `terminal_helpers.sh` registra status e duração; `run_helpers.sh` controla o solver e o arquivamento; `run_state.py` consulta os metadados.
 
+A geração separa os pontos da AMI com `mergeOrSplitBaffles -split -overwrite`, após `createBaffles`. Sem essa separação, a região fixa compartilha pontos com a rotativa e pode gerar volumes negativos durante a rotação.
+
+Antes do solver, `check_mesh_motion.py` testa aproximadamente uma volta em cada sentido numa cópia temporária, a 16 rad/s, sem resolver o fluido. Erros de geometria, execução incompleta ou soma mínima de pesos AMI abaixo do limiar configurado interrompem a execução. Os detalhes ficam em `log.meshMotionPositive`, `log.meshMotionNegative` e `metadata/mesh_motion_check.json`. A checagem não comprova convergência, conservação ou precisão aerodinâmica.
+
 ## Configurar
 
 Edite [config.yaml](config.yaml). Os dicionários em `0/`, `constant/` e `system/` cobertos por `config/templates/` são regenerados automaticamente.
@@ -105,6 +109,7 @@ tail -f log.pimpleFoam
 | `log.parallelSettings` / `log.mpiTest` | Configuração e inicialização MPI |
 | `log.snappyHexMesh` | Refinamento e ajuste à superfície |
 | `log.checkMesh` | Verificação padrão da malha |
+| `log.checkMeshMotion` / `log.meshMotion*` | Rotação de teste da malha e cobertura AMI |
 | `log.pimpleFoam` | Passos, resíduos, Courant e movimento |
 
 Ao arquivar, os logs passam para `runs/<run>/logs/`. O pós-processamento gera `log.calculate_energy`, `log.plot_results` e `log.summary` nessa pasta. Falhas mostram o caminho do log correspondente, sem despejar seu conteúdo no terminal.
