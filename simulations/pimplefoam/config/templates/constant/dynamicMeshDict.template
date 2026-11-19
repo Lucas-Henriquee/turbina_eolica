@@ -90,6 +90,12 @@ dynamicMultiMotionSolverFvMeshCoeffs
                     sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
                     coeff {{generator_damping}};
                 }
+
+                generatorMechanicalLoss
+                {
+                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
+                    coeff {{generator_mechanical_damping}};
+                }
             }
 
         }

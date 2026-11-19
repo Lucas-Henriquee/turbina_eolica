@@ -40,6 +40,19 @@ class GeneratorModelTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 resolve_generator(config)
 
+    def test_viscous_losses_match_catalog_point_only(self):
+        model = resolve_generator(self.config)
+        self.assertGreater(model["mechanical_damping_N_m_s_rad"], 0)
+        self.assertAlmostEqual(model["mechanical_damping_N_m_s_rad"] * model["catalog_no_load_omega_rad_s"],
+                               model["torque_constant_N_m_A"] * self.config["generator"]["no_load_current_A"])
+        self.config["generator"]["mechanical_loss_model"] = "none"
+        self.assertEqual(resolve_generator(self.config)["mechanical_damping_N_m_s_rad"], 0)
+        del self.config["generator"]["mechanical_loss_model"]
+        self.assertEqual(resolve_generator(self.config)["mechanical_damping_N_m_s_rad"], 0)
+        self.config["generator"]["mechanical_loss_model"] = "invalid"
+        with self.assertRaises(ValueError):
+            resolve_generator(self.config)
+
     def test_legacy_config(self):
         del self.config["generator"]
         for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
@@ -73,7 +86,7 @@ class GeneratorModelTests(unittest.TestCase):
                     config["generator"]["enabled"] = enabled
                     config["motion"]["shaft_damping"] = 1e-5
                     model = resolve_generator(config)
-                    torque = (config["motion"]["shaft_damping"] + model["electrical_damping_N_m_s_rad"]) * omega
+                    torque = (config["motion"]["shaft_damping"] + model["electrical_damping_N_m_s_rad"] + model["mechanical_damping_N_m_s_rad"]) * omega
                     body = {"mass": 0.118, "volume": 9.25e-5, "radius": 0.226,
                             "swept_area": np.pi * 0.226**2, "centreOfMass": [0, 0, 0],
                             "momentOfInertia": [1e-5, 0.001667, 0.001668],

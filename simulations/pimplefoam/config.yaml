@@ -50,10 +50,11 @@ motion:      # Movimento do rotor e da malha.
     voc: 0.5       # Peso da velocidade; apenas CrankNicolson.
   acceleration_relaxation: 0.7    # Relaxação da aceleração entre correções.
   acceleration_damping: 1.0       # Amortecimento numérico; 1 não reduz aceleração.
-  shaft_damping: 0.0              # N·m·s/rad; perdas mecânicas omitidas até caracterização.
+  shaft_damping: 0.0              # N·m·s/rad; perda adicional do eixo, além do gerador.
 
 generator:   # Referência aproximada; não é a ficha do RS-775SF instalado.
   enabled: true
+  mechanical_loss_model: viscous_from_no_load  # none ou estimativa viscosa pelo catálogo.
   reference_model: RS-775VC-9013
   source_url: https://product-en-origin.mabuchi-motor.co.jp/detail.html?id=220
   nominal_voltage_V: 18.0       # V; tensão do ensaio de catálogo.

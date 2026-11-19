@@ -127,8 +127,9 @@ def validate_controls(config, templates):
         ],
     }
     if "generator" in config:
+        config["generator"].setdefault("mechanical_loss_model", "none")
         schema["generator"] = [
-            "enabled", "reference_model", "source_url", "nominal_voltage_V",
+            "enabled", "mechanical_loss_model", "reference_model", "source_url", "nominal_voltage_V",
             "no_load_speed_rpm", "no_load_current_A", "stall_current_A",
             "load_resistance_ohm", "shunt_resistance_ohm",
         ]

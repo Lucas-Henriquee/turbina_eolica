@@ -64,8 +64,9 @@ def write_report(case, output=None):
                 f'Constante ke = kt (SI): {generator["back_emf_constant_V_s_rad"]:.8g}',
                 f'Resistência interna estimada: {generator["internal_resistance_ohm"]:.8g} ohm',
                 f'Amortecimento elétrico: {generator["electrical_damping_N_m_s_rad"]:.8g} N.m.s/rad',
+                f'Amortecimento do gerador sem carga: {generator.get("mechanical_damping_N_m_s_rad", 0):.8g} N.m.s/rad',
                 f'Amortecimento mecânico separado: {config["motion"]["shaft_damping"]:.8g} N.m.s/rad',
-                "Modelo não calibrado; perdas mecânicas e inércia do gerador não caracterizadas.",
+                "Modelo não calibrado; perdas em baixa rotação e inércia do gerador não caracterizadas.",
                 "",
             ]
         if bench:

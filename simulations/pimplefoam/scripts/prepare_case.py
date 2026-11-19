@@ -422,6 +422,7 @@ def prepare_case(root=ROOT, processes=None):
         "motion_damping": config["motion"]["acceleration_damping"],
         "shaft_damping": config["motion"]["shaft_damping"],
         "generator_damping": generator["electrical_damping_N_m_s_rad"],
+        "generator_mechanical_damping": generator["mechanical_damping_N_m_s_rad"],
         "mesh_cells": mesh["cells"],
         "mesh_location": mesh["location_in_mesh"],
         "mesh_layers": mesh["add_layers"],

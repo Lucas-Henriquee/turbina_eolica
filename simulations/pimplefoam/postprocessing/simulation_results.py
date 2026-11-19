@@ -153,7 +153,8 @@ def analyze(case):
     )
     generator = resolve_generator(config)
     electrical_loss = generator["electrical_damping_N_m_s_rad"] * omega**2
-    mechanical_loss = config["motion"]["shaft_damping"] * omega**2
+    generator_mechanical_loss = generator["mechanical_damping_N_m_s_rad"] * omega**2
+    mechanical_loss = config["motion"]["shaft_damping"] * omega**2 + generator_mechanical_loss
     dissipated = mechanical_loss + electrical_loss
     current = voltage = load_power = internal_loss = shunt_loss = np.full_like(omega, np.nan)
     generator_torque = np.full_like(omega, np.nan)
@@ -199,6 +200,7 @@ def analyze(case):
             internal_loss,
             shunt_loss,
             load_energy,
+            generator_mechanical_loss,
         ]
     )
     columns = [
@@ -225,6 +227,7 @@ def analyze(case):
         "generator_internal_loss_W",
         "generator_shunt_loss_W",
         "generator_load_energy_J",
+        "generator_no_load_loss_W",
     ]
     summary = {
         "time_start_s": float(times[0]),
@@ -247,6 +250,7 @@ def analyze(case):
         "generator_load_energy_J": float(load_energy[-1]) if generator["enabled"] else None,
         "mean_generator_load_power_W": float(load_energy[-1] / (times[-1] - times[0])) if generator["enabled"] else None,
         "mechanical_loss_energy_J": float(cumulative_trapezoid(times, mechanical_loss)[-1]),
+        "generator_no_load_loss_energy_J": float(cumulative_trapezoid(times, generator_mechanical_loss)[-1]),
         "generator_extracted_energy_J": float(cumulative_trapezoid(times, electrical_loss)[-1]),
         "notes": [
             "Potência aerodinâmica assinada = torque total Y × omega Y; não representa potência elétrica.",
@@ -268,6 +272,10 @@ def analyze(case):
             "Corrente e tensão do modelo seguem a convenção de sinal do eixo Y; compare módulos com a bancada.",
             "Indutância, queda não linear nas escovas e inércia interna do gerador não incluídas.",
         ])
+        if generator["mechanical_loss_model"] == "viscous_from_no_load":
+            summary["notes"].append(
+                "Perdas sem carga do catálogo extrapoladas como amortecimento viscoso; atrito em baixa rotação não calibrado."
+            )
     summary["mean_torque_y_N_m"] = float(
         cumulative_trapezoid(times, torque)[-1] / (times[-1] - times[0])
     )

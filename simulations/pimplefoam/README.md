@@ -62,9 +62,11 @@ O preparador estima `Rint = V / Istall` e `ke = (V - Rint × I0) / omega0`, adot
 
 O modelo quase estacionário aplica `I = ke × omega / (Rint + Rcarga + Rshunt)` e `Tgerador = -kt × I`, equivalentes a um amortecimento `be = kt × ke / Rtotal`. A carga elétrica é uma restrição `generatorElectricalLoad`, separada de `shaftViscousDamping`. Não requer biblioteca C++ adicional. Os parâmetros derivados e a fonte ficam em `metadata/resolved_config.json`.
 
-O coeficiente equivalente anterior de `1e-4` foi retirado. `motion.shaft_damping: 0` omite provisoriamente perdas mecânicas não caracterizadas; não significa ausência de atrito real. O caso não inclui indutância, queda não linear nas escovas, cogging ou inércia interna do gerador. É uma referência idealizada, não uma calibração; a RPM pode aumentar em relação ao caso anterior. Não use o torque de bloqueio como torque constante na turbina.
+O coeficiente equivalente anterior de `1e-4` foi retirado. `generator.mechanical_loss_model: viscous_from_no_load` estima as perdas sem carga por `T0 = kt × I0` e `bm = T0 / omega0`. Isso representa atrito e outras perdas internas como um único amortecimento viscoso, aplicado em `generatorMechanicalLoss`. O modelo reproduz somente o ponto sem carga de 21.900 RPM; sua extrapolação para cerca de 115 RPM não foi validada e não representa atrito estático ou cogging. `none` desativa essa estimativa. Configurações antigas sem essa chave mantêm as perdas omitidas.
 
-O pós-processamento separa potência aerodinâmica, potência elétrica estimada no resistor (`generator_load_power_W`), perdas internas, perdas no shunt e perdas mecânicas. `shaft_dissipation_W` representa a soma das potências resistentes. Corrente e tensão estimadas seguem o sinal do eixo Y; compare seus módulos com a bancada. `generator_load_energy_J` integra apenas a potência entregue ao resistor. Desative `generator.enabled` para estudar o caso sem carga elétrica e escolha separadamente o amortecimento mecânico.
+`motion.shaft_damping: 0` indica que não há outra perda adicional atribuída ao eixo. Não some novamente o mesmo atrito nesse campo. O caso não inclui indutância, queda não linear nas escovas ou inércia interna do gerador. É uma referência idealizada, não uma calibração; a RPM pode aumentar em relação ao caso anterior. Não use o torque de bloqueio como torque constante na turbina.
+
+O pós-processamento separa potência aerodinâmica, potência elétrica estimada no resistor (`generator_load_power_W`), perdas internas, perdas no shunt e perdas mecânicas. `generator_no_load_loss_W` registra a parcela estimada do catálogo; `mechanical_loss_W` inclui essa parcela e a perda adicional do eixo. `shaft_dissipation_W` representa a soma das potências resistentes. Corrente e tensão estimadas seguem o sinal do eixo Y; compare seus módulos com a bancada. `generator_load_energy_J` integra apenas a potência entregue ao resistor. `generator.enabled: false` remove o modelo inteiro do gerador, incluindo as perdas estimadas; o amortecimento adicional do eixo permanece independente.
 
 Testes: `python3 -m unittest discover -s tests -v`, a partir desta pasta. Incluem sinal do torque, balanço de potência, correções do rotor e compatibilidade com configurações antigas.
 
@@ -150,7 +152,7 @@ python3 postprocessing/plot_results.py --case "runs/<run>"
 
 ## Limites do modelo
 
-A entrada é um disco uniforme simplificado; velocidade e turbulência ainda precisam de medições. `Cp`, `Cq` e `TSR` usam a velocidade nominal da entrada, não uma medição local no rotor. O gerador usa uma carga resistiva equivalente com parâmetros de motor semelhante; as perdas mecânicas continuam sem caracterização.
+A entrada é um disco uniforme simplificado; velocidade e turbulência ainda precisam de medições. `Cp`, `Cq` e `TSR` usam a velocidade nominal da entrada, não uma medição local no rotor. O gerador usa parâmetros de motor semelhante; as perdas sem carga são aproximadas como viscosas e não foram caracterizadas na bancada.
 
 Potência aerodinâmica: `My × omega_y`. RPM e torque têm sinal no eixo Y. O campo `omega` do OpenFOAM é turbulência; a rotação está nos CSVs. Energia é integrada por trapézios, incluindo a partida.
 
