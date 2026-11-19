@@ -9,7 +9,7 @@ main() {
     print_status INFO 'OpenFOAM | serial'
 
     prepare_case --processes 1
-    create_case_mesh
+    create_case_mesh --processes 1
     run_solver pimpleFoam
     finish_run
 }

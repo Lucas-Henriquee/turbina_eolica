@@ -55,7 +55,7 @@ create_case_mesh() {
     run_step createPatch -overwrite
     # Os campos precisam conhecer o patch recém-criado.
     run_step_named "Refresh fields" prepareFields \
-        python3 scripts/prepare_case.py
+        python3 scripts/prepare_case.py "$@"
     run_step checkMesh
     if ! grep -q 'Mesh OK' log.checkMesh; then
         print_status FAIL "Mesh validation" >&2

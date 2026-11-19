@@ -34,7 +34,7 @@ main() {
     run_step_named "MPI preflight" mpiTest \
         timeout "${mpi_timeout}s" mpirun -np "$process_count" hostname
 
-    create_case_mesh
+    create_case_mesh --processes "$process_count"
     run_step decomposePar -force
     run_step_named "Parallel mesh motion check" checkMeshMotionParallel \
         python3 scripts/check_mesh_motion.py --processes "$process_count"
