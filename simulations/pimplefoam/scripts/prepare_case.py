@@ -415,6 +415,9 @@ def prepare_case(root=ROOT, processes=None):
         "turbulence_k": config["turbulence"]["k"],
         "turbulence_omega": config["turbulence"]["omega"],
         "ami_low_weight": config["motion"]["ami_low_weight_correction"],
+        "ami_min_cos_angle": config["motion"]["ami_min_cos_angle"],
+        "ami_max_distance_squared": config["motion"]["ami_max_normal_distance"]**2
+        if config["motion"]["ami_max_normal_distance"] is not None else -1,
         "motion_inner": config["motion"]["inner_distance"],
         "motion_outer": config["motion"]["outer_distance"],
         "motion_gravity": config["motion"]["gravity"],

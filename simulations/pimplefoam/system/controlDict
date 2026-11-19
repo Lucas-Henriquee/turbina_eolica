@@ -16,7 +16,7 @@ libs
 startFrom       startTime;
 startTime       0;
 stopAt          endTime;
-endTime         12;
+endTime         25;
 
 deltaT          0.0002;
 

@@ -23,6 +23,8 @@ baffles
                 name            AMI1;
                 type            cyclicAMI;
                 lowWeightCorrection {{ami_low_weight}};
+                minCosAngle {{ami_min_cos_angle}};
+                maxDistance2 {{ami_max_distance_squared}};
                 neighbourPatch  AMI2;
             }
 
@@ -31,6 +33,8 @@ baffles
                 name            AMI2;
                 type            cyclicAMI;
                 lowWeightCorrection {{ami_low_weight}};
+                minCosAngle {{ami_min_cos_angle}};
+                maxDistance2 {{ami_max_distance_squared}};
                 neighbourPatch  AMI1;
             }
         }

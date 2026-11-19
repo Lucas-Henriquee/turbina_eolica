@@ -6,6 +6,8 @@ from generator_model import resolve_generator
 
 
 def validate_controls(config, templates):
+    config["motion"].setdefault("ami_min_cos_angle", -1.0)
+    config["motion"].setdefault("ami_max_normal_distance", None)
     for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
         config["geometry"].setdefault(key, 0.0)
     def finite(value, name, lower=None, integer=False):
@@ -64,6 +66,8 @@ def validate_controls(config, templates):
         "wind": ["profile", "reference_speed"],
         "motion": [
             "ami_low_weight_correction",
+            "ami_min_cos_angle",
+            "ami_max_normal_distance",
             "inner_distance",
             "outer_distance",
             "gravity",
@@ -151,6 +155,15 @@ def validate_controls(config, templates):
     )
     if threshold > 1:
         raise ValueError("ami_low_weight_correction must be between 0 and 1.")
+    motion = config["motion"]
+    cosine = finite(motion["ami_min_cos_angle"], "motion.ami_min_cos_angle")
+    if not -1 <= cosine < 1:
+        raise ValueError("ami_min_cos_angle must be in [-1, 1).")
+    motion["ami_min_cos_angle"] = cosine
+    if motion["ami_max_normal_distance"] is not None:
+        motion["ami_max_normal_distance"] = finite(
+            motion["ami_max_normal_distance"], "motion.ami_max_normal_distance", 1e-12
+        )
     for key in ["fan_diameter", "fan_distance", "axis_height", "fan_refinement_depth"]:
         finite(config["bench"][key], "bench." + key, 1e-12)
     finite(config["bench"]["fan_refinement"], "bench.fan_refinement", 0, True)

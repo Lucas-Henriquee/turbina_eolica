@@ -36,7 +36,9 @@ Auxiliares em `scripts/`: `case_helpers.sh` prepara o caso e a malha; `terminal_
 
 A geração separa os pontos da AMI com `mergeOrSplitBaffles -split -overwrite`, após `createBaffles`. Sem essa separação, a região fixa compartilha pontos com a rotativa e pode gerar volumes negativos durante a rotação.
 
-Antes do solver, `check_mesh_motion.py` testa aproximadamente uma volta em cada sentido numa cópia temporária, a 16 rad/s, sem resolver o fluido. Erros de geometria, execução incompleta ou soma mínima de pesos AMI abaixo do limiar configurado interrompem a execução. Os detalhes ficam em `log.meshMotionPositive`, `log.meshMotionNegative` e `metadata/mesh_motion_check.json`. A checagem não comprova convergência, conservação ou precisão aerodinâmica.
+Antes do solver, `check_mesh_motion.py` testa aproximadamente uma volta em cada sentido numa cópia temporária, a 16 rad/s, sem resolver o fluido. A execução MPI repete o teste com a mesma decomposição usada pelo solver. Erros de geometria, execução incompleta ou cobertura AMI insuficiente interrompem a execução. Consulte `log.meshMotion*` e `metadata/mesh_motion_check*.json`.
+
+Na AMI, `motion.ami_min_cos_angle` e `motion.ami_max_normal_distance` limitam as faces candidatas por orientação e distância normal. O referencial de inércia mantém o eixo corporal Y alinhado ao eixo fixo. A convecção de `k` e `omega` usa `upwind` para reduzir valores negativos, com maior difusão numérica.
 
 ## Configurar
 

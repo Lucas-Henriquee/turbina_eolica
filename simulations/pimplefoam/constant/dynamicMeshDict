@@ -31,18 +31,18 @@ dynamicMultiMotionSolverFvMeshCoeffs
 
             patches (propeller);
 
-            innerDistance 0.36;
-            outerDistance 0.46;
+            innerDistance 0.37;
+            outerDistance 0.47;
 
             centreOfMass
             (4.41986008343e-09 0.0131420235794 3.33069234091e-09);
 
-            mass 0.117451266141;
-            orientation (0.99995598397 1.94875246428e-09 -0.00938243691236 -1.54046337343e-10 1 2.06432907217e-07 0.00938243691236 -1.91292743557e-07 0.99995598397);
-            initialOrientation (0.99995598397 1.94875246428e-09 -0.00938243691236 -1.54046337343e-10 1 2.06432907217e-07 0.00938243691236 -1.91292743557e-07 0.99995598397);
+            mass 0.118185220725;
+            orientation (0.99995598397 0 -0.00938243691236 -0 1 0 0.00938243691236 0 0.99995598397);
+            initialOrientation (0.99995598397 0 -0.00938243691236 -0 1 0 0.00938243691236 0 0.99995598397);
 
             momentOfInertia
-            (7.62481236749e-06 0.00166673729955 0.00166858597583);
+            (7.62481236749e-06 0.0016667785845 0.00166858597583);
 
             rho     rhoInf;
             rhoInf  1.225;
@@ -84,7 +84,19 @@ dynamicMultiMotionSolverFvMeshCoeffs
                 shaftViscousDamping
                 {
                     sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
-                    coeff 0.0001;
+                    coeff 0;
+                }
+
+                generatorElectricalLoad
+                {
+                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
+                    coeff 5.80365755722e-06;
+                }
+
+                generatorMechanicalLoss
+                {
+                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
+                    coeff 9.20250782491e-06;
                 }
             }
 

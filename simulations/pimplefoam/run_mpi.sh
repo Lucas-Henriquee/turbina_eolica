@@ -36,6 +36,8 @@ main() {
 
     create_case_mesh
     run_step decomposePar -force
+    run_step_named "Parallel mesh motion check" checkMeshMotionParallel \
+        python3 scripts/check_mesh_motion.py --processes "$process_count"
     run_solver mpirun -np "$process_count" pimpleFoam -parallel
 
     # Reconstrói os campos antes de arquivar.

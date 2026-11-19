@@ -19,26 +19,27 @@ def apply_body_corrections(body, geometry):
         shaft_inertia_correction_kg_m2=inertia_delta,
         mass_model="homogeneous_solid",
     )
-    if mass_delta == 0 and inertia_delta == 0:
-        return corrected
-
-    # Mantém o centro de massa; corrige somente a inércia efetiva no eixo fixo.
+    # O eixo corporal Y deve coincidir com o eixo fixo da restrição sixDoF.
     orientation = np.array(body["orientation"]).reshape(3, 3)
     tensor = orientation @ np.diag(body["momentOfInertia"]) @ orientation.T
     offset = np.array(body["centreOfMass"]) - geometry["rotation_centre"]
     tensor[1, 1] += inertia_delta - mass_delta * (offset[0]**2 + offset[2]**2)
-    moments, axes = np.linalg.eigh(tensor)
+    # Para 1DOF, despreza XY/YZ e diagonaliza somente o plano transversal XZ.
+    transverse_moments, transverse_axes = np.linalg.eigh(tensor[np.ix_([0, 2], [0, 2])])
+    x_axis = np.array([transverse_axes[0, 0], 0.0, transverse_axes[1, 0]])
+    if np.dot(x_axis, orientation[:, 0]) < 0:
+        x_axis *= -1
+    y_axis = np.array([0.0, 1.0, 0.0])
+    axes = np.column_stack([x_axis, y_axis, np.cross(x_axis, y_axis)])
+    moments = np.array([transverse_moments[0], tensor[1, 1], transverse_moments[1]])
     if np.min(moments) <= 0:
         raise ValueError("Corrected inertia must be positive definite.")
-    # Preserva o referencial anterior quando os eixos só mudam de sinal.
-    for column in range(3):
-        if np.dot(axes[:, column], orientation[:, column]) < 0:
-            axes[:, column] *= -1
-    if np.linalg.det(axes) < 0:
-        axes[:, 0] *= -1
     corrected.update(
         momentOfInertia=moments.tolist(),
         orientation=axes.ravel().tolist(),
-        mass_model="homogeneous_solid_with_effective_shaft_corrections",
+        mass_model=("homogeneous_solid_with_effective_shaft_corrections"
+                    if mass_delta != 0 or inertia_delta != 0 else "homogeneous_solid"),
+        inertia_model="axis_y_constrained",
+        neglected_products_xy_yz_kg_m2=[float(tensor[0, 1]), float(tensor[1, 2])],
     )
     return corrected
