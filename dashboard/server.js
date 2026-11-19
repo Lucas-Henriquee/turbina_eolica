@@ -273,6 +273,7 @@ function startRecording(options) {
     samples: 0,
     voltage_location: 'load_side_of_shunt',
     rotation_direction: 'not_measured',
+    hall_filter: state.sample.hall_filter ?? null,
   };
   const metadataPath = path.join(directory, 'metadata.json');
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));

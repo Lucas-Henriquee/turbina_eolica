@@ -14,6 +14,9 @@ export const columns = [
   'hall_status',
   'electrical_status',
   'missing_packets',
+  'rpm_raw',
+  'hall_accepted_pulses',
+  'hall_rejected_pulses',
 ];
 
 export function validateSample(sample) {
@@ -26,10 +29,24 @@ export function validateSample(sample) {
     if (typeof sample[key] !== 'string' || !/^[a-z_]{1,80}$/.test(sample[key]))
       throw Error('Invalid sensor status');
   }
-  for (const key of ['rpm', 'load_voltage_V', 'current_A']) {
+  for (const key of ['rpm', 'rpm_raw', 'load_voltage_V', 'current_A']) {
     if (sample[key] != null && (typeof sample[key] !== 'number' || !Number.isFinite(sample[key]))) {
       throw Error('Invalid measurement');
     }
+  }
+  if (sample.rpm_raw != null && sample.rpm_raw < 0) throw Error('Invalid raw RPM');
+  for (const key of ['hall_accepted_pulses', 'hall_rejected_pulses']) {
+    if (sample[key] != null && (!Number.isSafeInteger(sample[key]) || sample[key] < 0))
+      throw Error('Invalid Hall pulse counter');
+  }
+  if (sample.hall_filter != null) {
+    const filter = sample.hall_filter;
+    if (
+      typeof filter.algorithm !== 'string' || !/^[a-z0-9_]{1,80}$/.test(filter.algorithm) ||
+      !['window_periods', 'min_interval_us', 'timeout_us', 'pulses_per_revolution']
+        .every((key) => Number.isSafeInteger(filter[key]) && filter[key] > 0) ||
+      !Number.isFinite(filter.min_period_ratio) || filter.min_period_ratio <= 0 || filter.min_period_ratio >= 1
+    ) throw Error('Invalid Hall filter configuration');
   }
   const data = { ...sample };
   if (data.hall_status === 'ok') {
@@ -88,6 +105,10 @@ export class Measurements {
       hall_status: sample.hall_status,
       electrical_status: sample.electrical_status,
       missing_packets: this.missing,
+      rpm_raw: sample.rpm_raw ?? null,
+      hall_accepted_pulses: sample.hall_accepted_pulses ?? null,
+      hall_rejected_pulses: sample.hall_rejected_pulses ?? null,
+      hall_filter: sample.hall_filter ?? null,
     };
     this.previous = row;
     this.count++;

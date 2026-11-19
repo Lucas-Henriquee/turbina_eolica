@@ -2,11 +2,11 @@
 #include <Wire.h>
 #include <esp_timer.h>
 #include "hardware_config.h"
+#include "hall_pulse_filter.h"
 
 // Protege dados compartilhados com a interrupção.
 portMUX_TYPE pulseMux = portMUX_INITIALIZER_UNLOCKED;
-volatile int64_t lastPulseUs = 0;
-volatile int64_t pulsePeriodUs = 0;
+HallPulseFilter hallFilter(MIN_PULSE_INTERVAL_US, PULSE_TIMEOUT_US, MIN_PERIOD_RATIO);
 uint32_t sequence = 0;
 unsigned long lastSampleMs = 0;
 bool inaReady = false;
@@ -62,11 +62,7 @@ void readCommands() {
 void ARDUINO_ISR_ATTR onPulse() {
   const int64_t now = esp_timer_get_time();
   portENTER_CRITICAL_ISR(&pulseMux);
-  const int64_t elapsed = now - lastPulseUs;
-  if (elapsed >= MIN_PULSE_INTERVAL_US) {
-    pulsePeriodUs = lastPulseUs > 0 ? elapsed : 0;
-    lastPulseUs = now;
-  }
+  hallFilter.observe(now);
   portEXIT_CRITICAL_ISR(&pulseMux);
 }
 
@@ -112,20 +108,19 @@ void loop() {
   if (nowMs - lastSampleMs < SAMPLE_INTERVAL_MS) return;
   lastSampleMs = nowMs;
   const int64_t timestampUs = esp_timer_get_time();
-  int64_t lastPulse, period;
+  HallPulseState hall;
   portENTER_CRITICAL(&pulseMux);
-  lastPulse = lastPulseUs;
-  period = pulsePeriodUs;
+  hall = hallFilter.snapshot(timestampUs);
   portEXIT_CRITICAL(&pulseMux);
 
   const char *hallStatus = "not_configured";
   double rpm = 0;
   if (HALL_WIRING_VERIFIED) {
     hallStatus = "waiting_for_pulses";
-    if (lastPulse > 0 && period > 0 && timestampUs - lastPulse <= PULSE_TIMEOUT_US) {
-      rpm = 60000000.0 / (period * PULSES_PER_REVOLUTION);
+    if (hall.periodUs > 0) {
+      rpm = 60000000.0 / (hall.periodUs * PULSES_PER_REVOLUTION);
       hallStatus = "ok";
-    } else if (lastPulse > 0 && timestampUs - lastPulse > PULSE_TIMEOUT_US) {
+    } else if (hall.lastPulseUs > 0 && timestampUs - hall.lastPulseUs > PULSE_TIMEOUT_US) {
       hallStatus = "no_pulse";
     }
   }
@@ -156,6 +151,18 @@ void loop() {
   Serial.print("\"rpm\":");
   if (strcmp(hallStatus, "ok") == 0) Serial.print(rpm, 6);
   else Serial.print("null");
+  Serial.print(",\"rpm_raw\":");
+  if (HALL_WIRING_VERIFIED && hall.rawPeriodUs > 0)
+    Serial.print(60000000.0 / (hall.rawPeriodUs * PULSES_PER_REVOLUTION), 6);
+  else Serial.print("null");
+  Serial.printf(",\"hall_accepted_pulses\":%lu,\"hall_rejected_pulses\":%lu,",
+                static_cast<unsigned long>(hall.acceptedPulses),
+                static_cast<unsigned long>(hall.rejectedPulses));
+  Serial.printf("\"hall_filter\":{\"algorithm\":\"median3_relative_gate_v1\",\"window_periods\":%u,"
+                "\"min_interval_us\":%lld,\"min_period_ratio\":%.3f,\"timeout_us\":%lld,"
+                "\"pulses_per_revolution\":%u}",
+                HallPulseFilter::WINDOW_SIZE, static_cast<long long>(MIN_PULSE_INTERVAL_US),
+                MIN_PERIOD_RATIO, static_cast<long long>(PULSE_TIMEOUT_US), PULSES_PER_REVOLUTION);
   Serial.print(",\"load_voltage_V\":");
   if (strcmp(electricalStatus, "ok") == 0) Serial.print(voltage, 6);
   else Serial.print("null");

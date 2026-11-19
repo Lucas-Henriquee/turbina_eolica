@@ -87,7 +87,8 @@ function renderDashboard() {
     ? `Recording · ${state.recording.name}`
     : 'Not recording';
   getElement('sensorStatus').textContent =
-    `Hall: ${row?.hall_status || '--'} · Electrical: ${row?.electrical_status || '--'}`;
+    `Hall: ${row?.hall_status || '--'} · Electrical: ${row?.electrical_status || '--'}` +
+    (row?.hall_rejected_pulses != null ? ` · Hall rejected: ${row.hall_rejected_pulses}` : '');
   getElement('sampleStatus').textContent =
     `${archive ? archive.length : total} samples · ${row?.missing_packets || 0} lost · ${formatValue(row?.integrated_duration_s)} s integrated`;
   getElement('returnLive').hidden = !archive;
@@ -299,6 +300,7 @@ function drawChart() {
   getElement('chartMean').textContent = formatValue(average);
   getElement('chartLegend').textContent = {
     rpm: 'Rotational speed · RPM',
+    rpm_raw: 'Raw rotational speed · RPM',
     load_voltage_V: 'Load voltage · V',
     current_A: 'Current · A',
     electrical_power_W: 'Electrical power · W',

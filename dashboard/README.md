@@ -65,4 +65,6 @@ A energia usa timestamps do dispositivo e integra apenas amostras válidas e con
 
 RPM é magnitude. Ausência de pulsos gera `no_pulse`, sem confirmar rotação zero. A potência elétrica é tensão × corrente.
 
+Com o firmware atualizado, o gráfico permite selecionar **RPM · raw diagnostic** para comparar o último intervalo bruto com a RPM filtrada. O CSV inclui `rpm_raw`, `hall_accepted_pulses` e `hall_rejected_pulses`. Os contadores acumulam desde a inicialização do ESP32; a diferença entre início e fim indica os eventos do ensaio. O `metadata.json` registra o algoritmo e os parâmetros em `hall_filter`. Pacotes de firmware antigo e modo Demo continuam aceitos, sem preencher diagnósticos ausentes.
+
 Consulte as instruções do [firmware](../firmware/README.md).
