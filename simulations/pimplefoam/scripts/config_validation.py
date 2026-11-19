@@ -2,9 +2,12 @@
 
 import math
 import re
+from generator_model import resolve_generator
 
 
 def validate_controls(config, templates):
+    for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
+        config["geometry"].setdefault(key, 0.0)
     def finite(value, name, lower=None, integer=False):
         if isinstance(value, bool):
             raise ValueError(f"{name}: expected a number, not a boolean.")
@@ -40,6 +43,8 @@ def validate_controls(config, templates):
             "rotor_stl",
             "rotation_centre",
             "material_density",
+            "mass_correction_kg",
+            "shaft_inertia_correction_kg_m2",
             "cylinder_stl",
             "cylinder_mode",
             "cylinder_radial_clearance",
@@ -121,9 +126,23 @@ def validate_controls(config, templates):
             "wall_distance",
         ],
     }
+    if "generator" in config:
+        schema["generator"] = [
+            "enabled", "reference_model", "source_url", "nominal_voltage_V",
+            "no_load_speed_rpm", "no_load_current_A", "stall_current_A",
+            "load_resistance_ohm", "shunt_resistance_ohm",
+        ]
     keys(config, schema, "config")
     for section, allowed in schema.items():
         keys(config[section], allowed, section)
+    if "generator" in config:
+        if not isinstance(config["generator"]["enabled"], bool):
+            raise ValueError("generator.enabled must be true or false.")
+        text(config["generator"]["reference_model"], "generator.reference_model")
+        url = config["generator"]["source_url"]
+        if not isinstance(url, str) or not url.startswith("https://") or any(c.isspace() for c in url):
+            raise ValueError("generator.source_url must be an HTTPS URL.")
+        resolve_generator(config)
     threshold = finite(
         config["motion"]["ami_low_weight_correction"],
         "motion.ami_low_weight_correction",
@@ -153,6 +172,8 @@ def validate_controls(config, templates):
         for value in values:
             finite(value, f"{section}.{key}")
     finite(config["initial"]["pressure"], "initial.pressure")
+    for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
+        finite(config["geometry"][key], "geometry." + key)
     finite(config["motion"]["shaft_damping"], "motion.shaft_damping", 0)
     for key in ["inner_distance", "outer_distance"]:
         if config["motion"][key] is not None:

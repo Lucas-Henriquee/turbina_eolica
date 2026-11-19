@@ -3,6 +3,8 @@ geometry:    # Geometria e material.
   rotor_stl: propeller_test.stl    # STL da hélice em constant/triSurface/.
   rotation_centre: [0, 0, 0]       # m; centro de rotação [X, Y, Z].
   material_density: 1270.0         # kg/m³; densidade do material maciço.
+  mass_correction_kg: 0.000733954584  # kg; três ímãs menos PETG do furo Ø5 × 6 mm.
+  shaft_inertia_correction_kg_m2: 4.12849453e-8  # kg·m²; acréscimo líquido a 7,5 mm do eixo.
   cylinder_stl: cylinder.stl       # STL da região de malha rotativa.
   cylinder_mode: auto              # auto gera o cilindro; existing usa o STL.
   cylinder_radial_clearance: 0.06  # m; folga entre ponta da pá e cilindro.
@@ -48,7 +50,18 @@ motion:      # Movimento do rotor e da malha.
     voc: 0.5       # Peso da velocidade; apenas CrankNicolson.
   acceleration_relaxation: 0.7    # Relaxação da aceleração entre correções.
   acceleration_damping: 1.0       # Amortecimento numérico; 1 não reduz aceleração.
-  shaft_damping: 1.0e-4           # N.m.s/rad; resistência viscosa do eixo.
+  shaft_damping: 0.0              # N·m·s/rad; perdas mecânicas omitidas até caracterização.
+
+generator:   # Referência aproximada; não é a ficha do RS-775SF instalado.
+  enabled: true
+  reference_model: RS-775VC-9013
+  source_url: https://product-en-origin.mabuchi-motor.co.jp/detail.html?id=220
+  nominal_voltage_V: 18.0       # V; tensão do ensaio de catálogo.
+  no_load_speed_rpm: 21900.0    # RPM; rotação sem carga a 18 V.
+  no_load_current_A: 2.74       # A; corrente sem carga do catálogo.
+  stall_current_A: 147.0       # A; corrente de bloqueio do catálogo.
+  load_resistance_ohm: 10.0     # Ω; resistor externo.
+  shunt_resistance_ohm: 0.1     # Ω; shunt do INA219 em série.
 
 time:        # Tempo e gravação dos campos.
   endTime: 12.0            # s; instante final da simulação.

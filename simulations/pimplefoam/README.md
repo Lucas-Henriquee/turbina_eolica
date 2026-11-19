@@ -45,11 +45,28 @@ Edite [config.yaml](config.yaml). Os dicionários em `0/`, `constant/` e `system
 | `wind` | Perfil de velocidade e referência nominal |
 | `mesh` | Domínio, células-base e refinamentos |
 | `motion` | Integração do movimento, AMI e amortecimento |
+| `generator` | Motor de referência e resistências da carga elétrica |
 | `time` | Duração, passo e intervalo de escrita |
 | `parallel` | Processos e decomposição |
 | `numerics` / `schemes` | Solvers e discretização |
 
 Para trocar a hélice, coloque o STL em `constant/triSurface/` e ajuste `geometry.rotor_stl`. `surfaceInertia` calcula massa e inércia como sólido homogêneo; o preenchimento da impressão não é modelado.
+
+`geometry.mass_correction_kg` e `geometry.shaft_inertia_correction_kg_m2` acrescentam correções efetivas à massa e à inércia sobre o eixo Y. A configuração atual estima três ímãs de neodímio Ø5 × 2 mm, furo Ø5 × 6 mm em PETG e distância de 7,5 mm ao eixo: +0,734 g e +4,13 × 10⁻⁸ kg·m². A inércia própria dos ímãs foi desprezada. O modelo mantém o centro de massa e não representa o desbalanceamento; é uma aproximação para o centro fixo e rotação restrita a Y deste caso. A inércia interna do gerador não está incluída. Zere as duas correções ao remover os ímãs ou trocar a geometria. `metadata/body_properties.json` registra massa geométrica, correções e propriedades efetivas; o volume continua sendo o do STL.
+
+### Gerador
+
+O caso usa o [Mabuchi RS-775VC-9013](https://product-en-origin.mabuchi-motor.co.jp/detail.html?id=220) como referência aproximada para o RS-775SF da bancada. Dados de catálogo: 18 V, 21.900 RPM e 2,74 A sem carga; 147 A em bloqueio. Não são medições do motor instalado.
+
+O preparador estima `Rint = V / Istall` e `ke = (V - Rint × I0) / omega0`, adotando `kt = ke` em SI. Com carga de 10 Ω e shunt de 0,1 Ω, resulta `Rint ≈ 0,12245 Ω`, `ke = kt ≈ 0,00770244` e `be ≈ 5,80366e-6 N·m·s/rad`.
+
+O modelo quase estacionário aplica `I = ke × omega / (Rint + Rcarga + Rshunt)` e `Tgerador = -kt × I`, equivalentes a um amortecimento `be = kt × ke / Rtotal`. A carga elétrica é uma restrição `generatorElectricalLoad`, separada de `shaftViscousDamping`. Não requer biblioteca C++ adicional. Os parâmetros derivados e a fonte ficam em `metadata/resolved_config.json`.
+
+O coeficiente equivalente anterior de `1e-4` foi retirado. `motion.shaft_damping: 0` omite provisoriamente perdas mecânicas não caracterizadas; não significa ausência de atrito real. O caso não inclui indutância, queda não linear nas escovas, cogging ou inércia interna do gerador. É uma referência idealizada, não uma calibração; a RPM pode aumentar em relação ao caso anterior. Não use o torque de bloqueio como torque constante na turbina.
+
+O pós-processamento separa potência aerodinâmica, potência elétrica estimada no resistor (`generator_load_power_W`), perdas internas, perdas no shunt e perdas mecânicas. `shaft_dissipation_W` representa a soma das potências resistentes. Corrente e tensão estimadas seguem o sinal do eixo Y; compare seus módulos com a bancada. `generator_load_energy_J` integra apenas a potência entregue ao resistor. Desative `generator.enabled` para estudar o caso sem carga elétrica e escolha separadamente o amortecimento mecânico.
+
+Testes: `python3 -m unittest discover -s tests -v`, a partir desta pasta. Incluem sinal do torque, balanço de potência, correções do rotor e compatibilidade com configurações antigas.
 
 Para validar a configuração e gerar os dicionários sem criar a malha:
 
@@ -133,7 +150,7 @@ python3 postprocessing/plot_results.py --case "runs/<run>"
 
 ## Limites do modelo
 
-A entrada é um disco uniforme simplificado; velocidade e turbulência ainda precisam de medições. `Cp`, `Cq` e `TSR` usam a velocidade nominal da entrada, não uma medição local no rotor. O gerador é representado apenas por amortecimento viscoso.
+A entrada é um disco uniforme simplificado; velocidade e turbulência ainda precisam de medições. `Cp`, `Cq` e `TSR` usam a velocidade nominal da entrada, não uma medição local no rotor. O gerador usa uma carga resistiva equivalente com parâmetros de motor semelhante; as perdas mecânicas continuam sem caracterização.
 
 Potência aerodinâmica: `My × omega_y`. RPM e torque têm sinal no eixo Y. O campo `omega` do OpenFOAM é turbulência; a rotação está nos CSVs. Energia é integrada por trapézios, incluindo a partida.
 

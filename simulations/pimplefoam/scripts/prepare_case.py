@@ -15,6 +15,8 @@ import numpy as np
 import yaml
 
 from config_validation import validate_controls
+from body_corrections import apply_body_corrections
+from generator_model import resolve_generator
 
 ROOT = Path(__file__).resolve().parents[1]
 NUMBER = r"[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?"
@@ -383,6 +385,8 @@ def prepare_case(root=ROOT, processes=None):
     body, log, check, axes = compute_body_properties(
         rotor, geometry["material_density"]
     )
+    body = apply_body_corrections(body, geometry)
+    generator = resolve_generator(config)
     values = {
         "rotor_file": geometry["rotor_stl"],
         "rotor_feature": Path(geometry["rotor_stl"]).with_suffix(".eMesh").name,
@@ -417,6 +421,7 @@ def prepare_case(root=ROOT, processes=None):
         "motion_relaxation": config["motion"]["acceleration_relaxation"],
         "motion_damping": config["motion"]["acceleration_damping"],
         "shaft_damping": config["motion"]["shaft_damping"],
+        "generator_damping": generator["electrical_damping_N_m_s_rad"],
         "mesh_cells": mesh["cells"],
         "mesh_location": mesh["location_in_mesh"],
         "mesh_layers": mesh["add_layers"],
@@ -493,14 +498,13 @@ def prepare_case(root=ROOT, processes=None):
     metadata = root / "metadata"
     metadata.mkdir(exist_ok=True)
     body.update(
-        volume=body["mass"] / geometry["material_density"],
+        volume=body["geometry_mass"] / geometry["material_density"],
         surface_area=float(re.search(r"Surface area:\s*(" + NUMBER + ")", log)[1]),
         radius=radius,
         swept_area=np.pi * radius**2,
         rotor_sha256=hashlib.sha256(rotor.read_bytes()).hexdigest(),
         density=geometry["material_density"],
     )
-    body["mass_model"] = "homogeneous_solid"
     body["geometry_bounds"] = [points.min(axis=0).tolist(), points.max(axis=0).tolist()]
     body["cylinder_bounds"] = [
         cylinder_points.min(axis=0).tolist(),
@@ -522,6 +526,7 @@ def prepare_case(root=ROOT, processes=None):
             {
                 "config": config,
                 "body": body,
+                "generator": generator,
                 "processes": process_count,
                 "openfoam_version": os.environ.get("WM_PROJECT_VERSION"),
                 "config_sha256": hashlib.sha256(

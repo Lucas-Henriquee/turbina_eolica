@@ -41,6 +41,8 @@ def write_report(case, output=None):
             f'Hélice: {config["geometry"]["rotor_stl"]}',
             f'Densidade do material: {body["density"]:.12g} kg/m³',
             f'Massa: {body["mass"]:.12g} kg',
+            f'Correção de massa: {body.get("mass_correction_kg", 0):.12g} kg',
+            f'Correção de inércia no eixo Y: {body.get("shaft_inertia_correction_kg_m2", 0):.12g} kg.m²',
             f'Volume sólido: {body["volume"]:.12g} m³',
             f'Área superficial: {body["surface_area"]:.12g} m²',
             f'Raio máximo: {body["radius"]:.12g} m',
@@ -53,6 +55,19 @@ def write_report(case, output=None):
             "",
         ]
         bench = config.get("bench")
+        generator = metadata.get("generator", {})
+        if generator.get("enabled"):
+            lines += [
+                "Gerador aproximado",
+                f'Referência: {generator["reference_model"]}',
+                f'Fonte: {generator["source_url"]}',
+                f'Constante ke = kt (SI): {generator["back_emf_constant_V_s_rad"]:.8g}',
+                f'Resistência interna estimada: {generator["internal_resistance_ohm"]:.8g} ohm',
+                f'Amortecimento elétrico: {generator["electrical_damping_N_m_s_rad"]:.8g} N.m.s/rad',
+                f'Amortecimento mecânico separado: {config["motion"]["shaft_damping"]:.8g} N.m.s/rad',
+                "Modelo não calibrado; perdas mecânicas e inércia do gerador não caracterizadas.",
+                "",
+            ]
         if bench:
             lo, hi = config["mesh"]["bounds"]
             lines += [
@@ -68,7 +83,9 @@ def write_report(case, output=None):
                 f'Limites do cilindro: {body.get("cylinder_bounds", "consultar STL")} m',
                 "Velocidade prescrita no disco; confirmar experimentalmente o perfil no rotor.",
                 "Cp/Cq/TSR usam a velocidade nominal do disco e a área varrida do rotor.",
-                "Carga do eixo: amortecimento viscoso; caracterização do gerador pendente.",
+                "Carga do eixo: modelo elétrico resistivo e perdas mecânicas separadas."
+                if generator.get("enabled") else
+                "Carga do eixo: amortecimento equivalente; gerador elétrico não modelado.",
                 "O modelo não resolve o ventilador, a grade nem o suporte da bancada.",
                 "",
             ]

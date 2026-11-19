@@ -3,11 +3,14 @@
 import json
 from pathlib import Path
 import re
+import sys
 
 import numpy as np
 
 NUMBER = r"[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?"
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+from generator_model import resolve_generator
 
 
 def read_forces(path):
@@ -148,7 +151,21 @@ def analyze(case):
         * speed[valid] ** 2
         * body["radius"]
     )
-    dissipated = config["motion"]["shaft_damping"] * omega**2
+    generator = resolve_generator(config)
+    electrical_loss = generator["electrical_damping_N_m_s_rad"] * omega**2
+    mechanical_loss = config["motion"]["shaft_damping"] * omega**2
+    dissipated = mechanical_loss + electrical_loss
+    current = voltage = load_power = internal_loss = shunt_loss = np.full_like(omega, np.nan)
+    generator_torque = np.full_like(omega, np.nan)
+    load_energy = np.full_like(omega, np.nan)
+    if generator["enabled"]:
+        current = generator["back_emf_constant_V_s_rad"] * omega / generator["total_resistance_ohm"]
+        voltage = current * generator["load_resistance_ohm"]
+        load_power = current**2 * generator["load_resistance_ohm"]
+        internal_loss = current**2 * generator["internal_resistance_ohm"]
+        shunt_loss = current**2 * generator["shunt_resistance_ohm"]
+        generator_torque = -generator["torque_constant_N_m_A"] * current
+        load_energy = cumulative_trapezoid(times, load_power)
     orientation = np.array(body["orientation"]).reshape(3, 3)
     # Transfere a inércia para o eixo Y.
     tensor = orientation @ np.diag(body["momentOfInertia"]) @ orientation.T
@@ -174,6 +191,14 @@ def analyze(case):
             kinetic,
             energy,
             loss_energy,
+            mechanical_loss,
+            generator_torque,
+            current,
+            voltage,
+            load_power,
+            internal_loss,
+            shunt_loss,
+            load_energy,
         ]
     )
     columns = [
@@ -192,6 +217,14 @@ def analyze(case):
         "rotor_kinetic_energy_J",
         "aerodynamic_energy_J",
         "shaft_dissipated_energy_J",
+        "mechanical_loss_W",
+        "generator_torque_y_N_m",
+        "generator_current_A",
+        "generator_load_voltage_V",
+        "generator_load_power_W",
+        "generator_internal_loss_W",
+        "generator_shunt_loss_W",
+        "generator_load_energy_J",
     ]
     summary = {
         "time_start_s": float(times[0]),
@@ -210,6 +243,11 @@ def analyze(case):
             energy[-1] - loss_energy[-1] - (kinetic[-1] - kinetic[0])
         ),
         "mean_aerodynamic_power_W": float(energy[-1] / (times[-1] - times[0])),
+        "generator_model": generator,
+        "generator_load_energy_J": float(load_energy[-1]) if generator["enabled"] else None,
+        "mean_generator_load_power_W": float(load_energy[-1] / (times[-1] - times[0])) if generator["enabled"] else None,
+        "mechanical_loss_energy_J": float(cumulative_trapezoid(times, mechanical_loss)[-1]),
+        "generator_extracted_energy_J": float(cumulative_trapezoid(times, electrical_loss)[-1]),
         "notes": [
             "Potência aerodinâmica assinada = torque total Y × omega Y; não representa potência elétrica.",
             "Energia integrada apenas no intervalo de amostras informado, pela regra dos trapézios.",
@@ -223,6 +261,13 @@ def analyze(case):
         summary["notes"].append(
             "Disco finito: Cp é nominal e não mede a eficiência elétrica ou o fluxo de energia real que atravessa o rotor."
         )
+    if generator["enabled"]:
+        summary["notes"].extend([
+            "Potência elétrica estimada no resistor: I²R; modelo de motor semelhante, sem calibração do RS-775SF.",
+            "Dissipação do eixo inclui carga elétrica, perdas internas, shunt e amortecimento mecânico separado.",
+            "Corrente e tensão do modelo seguem a convenção de sinal do eixo Y; compare módulos com a bancada.",
+            "Indutância, queda não linear nas escovas e inércia interna do gerador não incluídas.",
+        ])
     summary["mean_torque_y_N_m"] = float(
         cumulative_trapezoid(times, torque)[-1] / (times[-1] - times[0])
     )

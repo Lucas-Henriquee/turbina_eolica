@@ -33,6 +33,11 @@ def plot_results(case):
             "energy_vs_time.png",
         ),
     ]
+    if "generator_load_power_W" in data.dtype.names and np.isfinite(data["generator_load_power_W"]).any():
+        graphs.extend([
+            ("generator_load_power_W", "Potência elétrica estimada na carga (W)", "generator_load_power_vs_time.png"),
+            ("generator_current_A", "Corrente estimada no eixo Y (A)", "generator_current_vs_time.png"),
+        ])
     for column, label, name in graphs:
         fig, ax = plt.subplots(figsize=(8, 4.5))
         ax.plot(data["time_s"], data[column])
