@@ -9,5 +9,6 @@
   "material": "ABS",
   "wind_speed_m_s": 6.0,
   "wind_speed_source": "manual",
+  "fan_distance_m": null,
   "notes": ""
 }

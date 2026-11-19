@@ -78,8 +78,11 @@ function renderDashboard() {
   getElement('start').disabled =
     !state.connected || !state.sample || !!state.recording || !serverOnline;
   getElement('stop').disabled = !state.recording || !serverOnline;
-  for (const id of ['runName', 'rotor', 'material', 'wind'])
+  for (const id of ['runName', 'rotor', 'material', 'wind', 'fanDistance', 'windSource', 'notes'])
     getElement(id).disabled = !!state.recording;
+  getElement('addWindPoint').disabled = !!state.recording;
+  for (const control of getElement('windProfileRows').querySelectorAll('input, button'))
+    control.disabled = !!state.recording;
   getElement('recordState').textContent = state.recording
     ? `Recording · ${state.recording.name}`
     : 'Not recording';
@@ -151,7 +154,11 @@ function renderHistory() {
     const download = document.createElement('a');
     download.textContent = 'CSV';
     download.href = `/api/runs/${encodeURIComponent(run.id)}/csv`;
-    item.append(title, detail, view, download);
+    const setup = document.createElement('a');
+    setup.textContent = 'Setup';
+    setup.href = `/api/runs/${encodeURIComponent(run.id)}/metadata`;
+    setup.title = 'Download run parameters (JSON)';
+    item.append(title, detail, view, download, setup);
     container.append(item);
   }
 }
@@ -180,7 +187,11 @@ async function openRun(run) {
   getElement('plotWindow').value = 'all';
   getElement('plotTitle').textContent = run.name || run.id;
   getElement('plotDetail').textContent =
-    `${run.source?.toUpperCase()} · ${archive.length} saved samples · ${run.status}`;
+    `${run.source?.toUpperCase()} · ${archive.length} saved samples · ${run.status}` +
+    (run.fan_distance_m != null ? ` · Fan distance ${formatValue(run.fan_distance_m)} m` : '') +
+    (run.wind_speed_m_s != null ? ` · Wind ${formatValue(run.wind_speed_m_s)} m/s (${run.wind_speed_source === 'anemometer' ? 'anemometer' : 'nominal / estimated'})` : '') +
+    (run.wind_speed_profile?.length ? ` · Wind reference: ${run.wind_speed_profile.map((point) => `${formatValue(point.time_s)} s → ${formatValue(point.speed_m_s)} m/s`).join('; ')} (previous value held)` : '') +
+    (run.notes ? ` · ${run.notes}` : '');
   showMessage('Viewing a saved run. Live acquisition continues if connected.');
   renderDashboard();
   await refreshHistory();
@@ -367,6 +378,36 @@ function drawChart() {
   }
 }
 
+function addWindPoint() {
+  const rows = getElement('windProfileRows');
+  if (rows.children.length >= 100) return;
+  const row = document.createElement('tr');
+  for (const [key, label] of [['time_s', 'Elapsed time in seconds'], ['speed_m_s', 'Wind speed in metres per second']]) {
+    const cell = document.createElement('td');
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.step = 'any';
+    input.required = true;
+    input.dataset.key = key;
+    input.setAttribute('aria-label', label);
+    if (key === 'time_s' && !rows.children.length) input.value = '0';
+    cell.append(input);
+    row.append(cell);
+  }
+  const cell = document.createElement('td');
+  const remove = document.createElement('button');
+  remove.textContent = '×';
+  remove.className = 'quiet';
+  remove.type = 'button';
+  remove.setAttribute('aria-label', 'Remove wind reference point');
+  remove.onclick = () => row.remove();
+  cell.append(remove);
+  row.append(cell);
+  rows.append(row);
+}
+
+getElement('addWindPoint').onclick = addWindPoint;
 getElement('historySearch').oninput = renderHistory;
 getElement('plotWindow').onchange = () => {
   chartPointer = null;
@@ -400,11 +441,31 @@ getElement('connect').onclick = () =>
 getElement('disconnect').onclick = () => runAction(() => requestApi('/api/disconnect', {}));
 getElement('start').onclick = () =>
   runAction(async () => {
+    for (const id of ['runName', 'wind', 'fanDistance']) {
+      if (!getElement(id).reportValidity()) return;
+    }
+    const windProfile = [];
+    for (const row of getElement('windProfileRows').children) {
+      const point = {};
+      for (const input of row.querySelectorAll('input')) {
+        if (!input.reportValidity()) {
+          getElement('windProfileDetails').open = true;
+          input.reportValidity();
+          return;
+        }
+        point[input.dataset.key] = Number(input.value);
+      }
+      windProfile.push(point);
+    }
     await requestApi('/api/start', {
       name: getElement('runName').value,
       rotor_name: getElement('rotor').value,
       material: getElement('material').value,
       wind_speed_m_s: getElement('wind').value,
+      wind_speed_source: getElement('windSource').value,
+      fan_distance_m: getElement('fanDistance').value,
+      notes: getElement('notes').value,
+      wind_speed_profile: windProfile,
     });
     live = [];
     total = 0;
@@ -465,6 +526,9 @@ await runAction(async () => {
   getElement('rotor').value = config.rotor_name;
   getElement('material').value = config.material;
   getElement('wind').value = config.wind_speed_m_s;
+  getElement('fanDistance').value = config.fan_distance_m ?? '';
+  getElement('windSource').value = config.wind_speed_source === 'anemometer' ? 'anemometer' : 'manual';
+  getElement('notes').value = config.notes || '';
   await refreshPorts();
   await refreshHistory();
 });

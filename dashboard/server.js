@@ -217,7 +217,32 @@ function startRecording(options) {
   if (!name || name.length > 80 || /[\x00-\x1f]/.test(name))
     throw Error('Enter a run name (1–80 characters)');
   const wind = Number(options.wind_speed_m_s);
-  if (!Number.isFinite(wind) || wind < 0) throw Error('Invalid wind speed');
+  if (
+    options.wind_speed_m_s == null || String(options.wind_speed_m_s).trim() === '' ||
+    !Number.isFinite(wind) || wind < 0
+  )
+    throw Error('Enter a valid wind speed');
+  const distance = Number(options.fan_distance_m);
+  if (
+    options.fan_distance_m == null || String(options.fan_distance_m).trim() === '' ||
+    !Number.isFinite(distance) || distance <= 0
+  )
+    throw Error('Enter the fan distance in metres (greater than zero)');
+  const windSource = options.wind_speed_source || 'manual';
+  if (!['manual', 'anemometer'].includes(windSource)) throw Error('Invalid wind speed source');
+  const windProfile = options.wind_speed_profile ?? [];
+  if (!Array.isArray(windProfile) || windProfile.length > 100)
+    throw Error('Use up to 100 wind reference points');
+  let lastTime = -1;
+  for (const point of windProfile) {
+    if (
+      !point || !Number.isFinite(point.time_s) || !Number.isFinite(point.speed_m_s) ||
+      point.time_s < 0 || point.speed_m_s < 0 || point.time_s <= lastTime
+    ) throw Error('Wind reference points need increasing times and non-negative speeds');
+    lastTime = point.time_s;
+  }
+  if (windProfile.length && windProfile[0].time_s !== 0)
+    throw Error('Start the wind reference profile at 0 seconds');
   const slug =
     name
       .normalize('NFKD')
@@ -233,6 +258,14 @@ function startRecording(options) {
     source: state.source,
     status: 'recording',
     wind_speed_m_s: wind,
+    wind_speed_source: windSource,
+    wind_speed_profile: windProfile,
+    wind_profile_time_reference: 'recording_elapsed_seconds',
+    wind_profile_interpolation: 'previous_value',
+    wind_profile_role: 'reference_only_not_synchronized_measurement',
+    fan_distance_m: distance,
+    fan_distance_reference: 'fan_grille_to_rotor_plane',
+    notes: String(options.notes || '').trim().slice(0, 500),
     rotor_name: String(options.rotor_name || '').slice(0, 80),
     material: String(options.material || '').slice(0, 40),
     started_at_utc: new Date().toISOString(),
@@ -304,13 +337,15 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/api/ports') return reply(response, 200, await SerialPort.list());
     if (url.pathname === '/api/runs') return reply(response, 200, history());
     if (url.pathname === '/api/config') return reply(response, 200, config);
-    const match = url.pathname.match(/^\/api\/runs\/([a-zA-Z0-9_-]+)\/csv$/);
+    const match = url.pathname.match(/^\/api\/runs\/([a-zA-Z0-9_-]+)\/(csv|metadata)$/);
     if (match) {
-      const file = path.join(dataRoot, match[1], 'samples.csv');
+      const isMetadata = match[2] === 'metadata';
+      const extension = isMetadata ? 'json' : 'csv';
+      const file = path.join(dataRoot, match[1], isMetadata ? 'metadata.json' : 'samples.csv');
       if (!fs.existsSync(file)) return reply(response, 404, { error: 'Recording not found' });
       response.writeHead(200, {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="${match[1]}.csv"`,
+        'Content-Type': isMetadata ? 'application/json' : 'text/csv',
+        'Content-Disposition': `attachment; filename="${match[1]}.${extension}"`,
         'Cache-Control': 'no-store',
       });
       const stream = fs.createReadStream(file);

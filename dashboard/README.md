@@ -19,9 +19,10 @@ O projeto foi testado no Linux. Windows e macOS são suportados pela biblioteca 
 
 1. Selecione **USB** ou **Demo** e conecte.
 2. Aguarde a primeira amostra.
-3. Informe o nome do ensaio e clique em **Start recording**.
-4. Clique em **Stop & save** para finalizar.
-5. Consulte ou baixe o CSV pelo histórico lateral.
+3. Informe o nome, a distância do ventilador em metros e a velocidade de referência do vento. Selecione se a velocidade é estimada ou medida com anemômetro.
+4. Clique em **Start recording**. Os parâmetros ficam bloqueados durante a gravação.
+5. Clique em **Stop & save** para finalizar.
+6. Consulte ou baixe o CSV pelo histórico lateral.
 
 **Demo** usa dados gerados. Feche outros monitores seriais antes de conectar a USB. Fechar o navegador não encerra a gravação; finalize o ensaio antes de sair.
 
@@ -51,6 +52,14 @@ Cada pasta em `data/` contém:
 | --- | --- |
 | `samples.csv` | Amostras, potência elétrica e energia integrada |
 | `metadata.json` | Nome, origem, parâmetros, status e perdas de pacotes |
+
+`fan_distance_m` é a distância da grade frontal do ventilador até o plano de rotação da hélice. O ensaio salva essa referência, a velocidade do vento, sua origem (`manual` ou `anemometer`), rotor, material e observações. A velocidade é informada manualmente, inclusive quando medida com anemômetro; não há aquisição automática desse instrumento. Os parâmetros aparecem ao abrir um ensaio no histórico. Ensaios antigos continuam disponíveis, sem atribuir uma distância que não foi registrada.
+
+Em **Wind reference profile**, adicione opcionalmente pontos de tempo e velocidade, começando em 0 s e com tempos crescentes. Exemplo: 0 s → 5,1 m/s; 10 s → 5,8 m/s; 20 s → 6 m/s. Os tempos são relativos ao início da gravação. A interpretação mantém o valor anterior até o próximo ponto e o último até o fim. O perfil fica em `wind_speed_profile`, no `metadata.json`; ele não altera as amostras elétricas nem o cálculo de energia. Medições feitas em outro teste são referências, não medições sincronizadas do ensaio atual.
+
+O botão **Setup** no histórico baixa os parâmetros em JSON. **CSV** baixa as amostras.
+
+Para comparar patamares de velocidade, grave um ensaio por condição, após estabilizar o escoamento. Use as observações para registrar a regulagem do ventilador, a posição do anemômetro e a repetição.
 
 A energia usa timestamps do dispositivo e integra apenas amostras válidas e consecutivas. Lacunas acima de `max_energy_gap_s` interrompem a integração. `integrated_duration_s` informa o intervalo efetivamente integrado.
 

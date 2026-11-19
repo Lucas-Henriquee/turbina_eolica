@@ -213,12 +213,24 @@
               required /></label
           ><label>Rotor<input id="rotor" maxlength="80" /></label
           ><label>Material<input id="material" maxlength="40" /></label
-          ><label>Wind · m/s (manual)<input id="wind" type="number" min="0" step="0.1" /></label>
+          ><label>Wind · m/s<input id="wind" type="number" min="0" step="any" required /></label>
+          <label>Fan distance · m<input id="fanDistance" type="number" min="0.001" step="any" placeholder="e.g. 1.00" required aria-describedby="distanceHelp" /><small id="distanceHelp">Fan grille to rotor plane</small></label>
+          <label>Wind reference<select id="windSource"><option value="manual">Nominal / estimated</option><option value="anemometer">Anemometer measurement</option></select></label>
+          <label class="run-notes">Notes · optional<input id="notes" maxlength="500" placeholder="Fan setting, measurement position, repeat number…" /></label>
         </div>
+        <details id="windProfileDetails" class="wind-profile">
+          <summary>Wind reference profile · optional</summary>
+          <p>Use times from the start of recording. Each value is held until the next point; the last continues to the end. This is a manual reference, not a synchronized anemometer recording.</p>
+          <table>
+            <thead><tr><th scope="col">Elapsed time · s</th><th scope="col">Wind · m/s</th><th scope="col"><span class="sr-only">Remove point</span></th></tr></thead>
+            <tbody id="windProfileRows"></tbody>
+          </table>
+          <button id="addWindPoint" class="quiet" type="button">+ Add point</button>
+        </details>
         <div class="record-actions">
           <button id="start" disabled><span aria-hidden="true">●</span> Start recording</button
           ><button id="stop" class="quiet" disabled>Stop & save</button
-          ><span>Choose a name. Every sample is saved to CSV.</span>
+          ><span>Enter the setup before recording. Every sample is saved to CSV.</span>
         </div>
       </section>
       <footer>

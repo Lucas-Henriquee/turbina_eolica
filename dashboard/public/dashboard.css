@@ -687,6 +687,39 @@ h1 {
   gap: 12px;
   margin: 20px 0 16px;
 }
+.run-form small {
+  color: #7b8992;
+  font-size: 10px;
+}
+.run-notes {
+  grid-column: span 2;
+}
+.wind-profile {
+  margin: 0 0 20px;
+  font-size: 12px;
+}
+.wind-profile summary {
+  cursor: pointer;
+  color: #b8c4cc;
+}
+.wind-profile p {
+  color: #7b8992;
+  line-height: 1.5;
+  max-width: 680px;
+}
+.wind-profile table {
+  width: 100%;
+  max-width: 520px;
+  border-spacing: 0 8px;
+  text-align: left;
+}
+.wind-profile th {
+  font-weight: 400;
+  color: #7b8992;
+}
+.wind-profile td {
+  padding-right: 10px;
+}
 .record-actions {
   display: flex;
   align-items: center;
@@ -884,6 +917,9 @@ footer {
   }
   .run-form {
     grid-template-columns: 1fr;
+  }
+  .run-notes {
+    grid-column: auto;
   }
   .plot-footer {
     flex-wrap: wrap;
