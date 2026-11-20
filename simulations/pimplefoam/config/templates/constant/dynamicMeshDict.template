@@ -43,6 +43,7 @@ dynamicMultiMotionSolverFvMeshCoeffs
 
             momentOfInertia
             {{body_inertia}};
+            angularMomentum {{initial_angular_momentum}};
 
             rho     rhoInf;
             rhoInf  {{fluid_density}};

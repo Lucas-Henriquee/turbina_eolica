@@ -9,6 +9,7 @@ def validate_controls(config, templates):
     config["motion"].setdefault("ami_min_cos_angle", -1.0)
     config["motion"].setdefault("ami_max_normal_distance", None)
     config["motion"].setdefault("prescribed_rpm", None)
+    config["motion"].setdefault("initial_rpm", 0.0)
     for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
         config["geometry"].setdefault(key, 0.0)
     def finite(value, name, lower=None, integer=False):
@@ -76,6 +77,7 @@ def validate_controls(config, templates):
             "acceleration_damping",
             "shaft_damping",
             "prescribed_rpm",
+            "initial_rpm",
             "integration",
         ],
         "time": [
@@ -140,6 +142,10 @@ def validate_controls(config, templates):
             "load_resistance_ohm", "shunt_resistance_ohm",
         ]
     keys(config, schema, "config")
+    mesh = config["mesh"]
+    if isinstance(mesh, dict) and "cylinder_surface_level" in mesh:
+        schema["mesh"].append("cylinder_surface_level")
+        finite(mesh["cylinder_surface_level"], "mesh.cylinder_surface_level", 0, True)
     for section, allowed in schema.items():
         keys(config[section], allowed, section)
     if "generator" in config:
@@ -192,7 +198,11 @@ def validate_controls(config, templates):
         finite(config["geometry"][key], "geometry." + key)
     finite(config["motion"]["shaft_damping"], "motion.shaft_damping", 0)
     prescribed_rpm = config["motion"]["prescribed_rpm"]
+    initial_rpm = finite(config["motion"]["initial_rpm"], "motion.initial_rpm")
+    config["motion"]["initial_rpm"] = initial_rpm
     if prescribed_rpm is not None:
+        if initial_rpm != 0:
+            raise ValueError("motion.initial_rpm is only used with free rotation.")
         rpm = finite(prescribed_rpm, "motion.prescribed_rpm")
         if rpm == 0:
             raise ValueError("motion.prescribed_rpm must be nonzero or null.")

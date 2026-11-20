@@ -9,7 +9,7 @@ import unittest
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from body_corrections import apply_body_corrections
+from body_corrections import apply_body_corrections, shaft_angular_momentum
 
 
 def tensor(body):
@@ -78,6 +78,13 @@ class BodyAxisTests(unittest.TestCase):
         self.assertEqual(result["momentOfInertia"], self.body["momentOfInertia"])
         self.assertEqual(result["mass"], self.body["mass"])
         self.assertEqual(result["mass_model"], "homogeneous_solid")
+
+    def test_initial_rotation_accounts_for_offset_shaft(self):
+        centre = self.geometry["rotation_centre"]
+        body = apply_body_corrections(self.body, self.geometry)
+        omega_y = -115 * math.pi / 30
+        momentum = shaft_angular_momentum(body, centre, omega_y)
+        np.testing.assert_allclose(momentum, [0, shaft_inertia(body, centre) * omega_y, 0])
 
 
 if __name__ == "__main__":

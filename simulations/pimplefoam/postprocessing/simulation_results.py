@@ -152,6 +152,30 @@ def prescribed_torque_balance(moment, rpm, shaft_damping, generator):
     return result
 
 
+def free_torque_balance(times, torque, omega, inertia, damping):
+    # Compara o saldo de torque com a aceleração no último segundo.
+    start = max(times[0], times[-1] - 1)
+    window = np.r_[start, times[times > start]]
+    duration = window[-1] - start
+    direction = np.sign(omega[-1])
+    if direction == 0:
+        return None
+    speed = np.interp(window, times, omega) * direction
+    aero = np.interp(window, times, torque) * direction
+    mean_aero = cumulative_trapezoid(window, aero)[-1] / duration
+    mean_brake = damping * cumulative_trapezoid(window, speed)[-1] / duration
+    acceleration_torque = inertia * (speed[-1] - speed[0]) / duration
+    return {
+        "window_start_s": float(start),
+        "window_end_s": float(window[-1]),
+        "mean_aero_drive_torque_N_m": float(mean_aero),
+        "model_total_brake_N_m": float(mean_brake),
+        "net_drive_torque_N_m": float(mean_aero - mean_brake),
+        "inertial_torque_N_m": float(acceleration_torque),
+        "balance_residual_N_m": float(mean_aero - mean_brake - acceleration_torque),
+    }
+
+
 def analyze(case):
     case = Path(case).resolve()
     metadata = json.loads((case / "metadata/resolved_config.json").read_text())
@@ -320,6 +344,15 @@ def analyze(case):
         summary["notes"].append(
             "Rotação imposta. Freio e geração elétrica são referências do modelo; "
             "a diferença de torque é compensada pela imposição de velocidade."
+        )
+    else:
+        damping = (
+            config["motion"]["shaft_damping"]
+            + generator["electrical_damping_N_m_s_rad"]
+            + generator["mechanical_damping_N_m_s_rad"]
+        )
+        summary["free_torque_balance"] = free_torque_balance(
+            times, torque, omega, inertia_y, damping
         )
     if config.get("bench"):
         summary["coefficient_reference"] = "fan_disk_speed_and_rotor_swept_area"

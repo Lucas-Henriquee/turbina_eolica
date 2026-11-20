@@ -30,13 +30,33 @@ python3 scripts/archive_case.py --status interrupted
 
 `Ctrl+C` interrompe o solver e arquiva os resultados parciais. Não execute dois scripts ao mesmo tempo nesta pasta.
 
-### Diagnóstico a 115 RPM
+### Partida livre
 
-`motion.prescribed_rpm: -115.0` fixa a rotação no sentido observado no caso livre. Vento, geometria e refinamento são os mesmos. Rode `./run_mpi.sh 6` e consulte `prescribed_torque_balance` em `results/summary.json` da execução.
+O `config.yaml` inicia com ar e rotor em repouso, malha de 57.024 células e 1 s de tempo físico. A entrada de 7,09 m/s produz 6,20 m/s no centro a 1 m no caso sem hélice. A partição `simple` com divisões `[2, 3, 1]` passou na checagem da AMI com seis processos.
 
-O balanço usa até as três últimas voltas completas. Ele separa pressão, viscosidade e freio do modelo, em N·m. `net_drive_torque_N_m` positivo indica que o modelo livre ainda aceleraria a 115 RPM. Confira se o torque por volta se repetiu antes de usar a média como referência. A duração inicial é de 4 s.
+```bash
+./run_mpi.sh 6
+```
 
-Para voltar à rotação livre, use `motion.prescribed_rpm: null` e ajuste `time.endTime` à duração desejada.
+Para comparar com a bancada, consulte `motion.csv` e `free_torque_balance` no resumo da execução. No equilíbrio, a média de RPM permanece estável e o saldo de torque tende a zero. O `checkMesh` estendido ainda aponta problemas locais de qualidade.
+
+### Rotação prescrita
+
+Para o diagnóstico a 132 RPM, use `motion.prescribed_rpm: -132.0` e `motion.initial_rpm: 0.0`. Consulte `prescribed_torque_balance` em `results/summary.json`. O resumo usa até as três últimas voltas completas. Um saldo positivo indica que o modelo livre ainda aceleraria nesse ponto.
+
+### Duração e escoamento inicial
+
+Use um caso SimpleFoam concluído, com a mesma hélice, vento e rotação próxima. O PimpleFoam começa em `t = 0` com os campos do último tempo salvo no SimpleFoam e a rotação definida em `motion`.
+
+```bash
+./run_mpi.sh 6 --initial-case /caminho/para/o/caso-simplefoam
+```
+
+Para testar a partida livre, configure `motion.prescribed_rpm: null` e `motion.initial_rpm: 0.0`. Se o vento já estiver estabelecido antes de liberar o rotor, use `--initial-case` com um SimpleFoam executado com `rotation.angular_velocity: 0.0`. Para ligar o ventilador com ar e rotor em repouso, use `initial.velocity: [0, 0, 0]` e execute `./run_mpi.sh 6`. Use em `wind.profile` a subida medida do vento, quando disponível.
+
+Comece com `time.endTime: 1.0` nos dois modos. No prescrito a 132 RPM, 2 s permitem comparar três voltas completas após a primeira volta. No livre, use 12 s para a primeira comparação e confira a tendência das médias de RPM e do saldo de torque nas últimas voltas. Se ainda houver deriva, rode 20 s e reavalie antes de escolher 25 s.
+
+Estenda o último ponto de `wind.profile` até `time.endTime`. No caso de bancada de 12 s, use `[[0.0, 7.09], [12.0, 7.09]]`.
 
 ## Scripts
 
@@ -47,6 +67,8 @@ A geração separa os pontos da AMI com `mergeOrSplitBaffles -split -overwrite`,
 Antes do solver, `check_mesh_motion.py` testa aproximadamente uma volta em cada sentido numa cópia temporária, a 16 rad/s, sem resolver o fluido. A execução MPI repete o teste com a mesma decomposição usada pelo solver. Erros de geometria, execução incompleta ou cobertura AMI insuficiente interrompem a execução. Consulte `log.meshMotion*` e `metadata/mesh_motion_check*.json`.
 
 Na AMI, `motion.ami_min_cos_angle` e `motion.ami_max_normal_distance` limitam as faces candidatas por orientação e distância normal. O referencial de inércia mantém o eixo corporal Y alinhado ao eixo fixo. A convecção de `k` e `omega` usa `upwind` para reduzir valores negativos, com maior difusão numérica.
+
+`mesh.cylinder_surface_level` refina só a superfície da AMI. Se omitido, usa `mesh.cylinder_level`, que também define o refinamento do interior do cilindro.
 
 ## Configurar
 
@@ -136,6 +158,18 @@ paraFoam -builtin
 No ParaView, clique em **Apply**, selecione `propeller` em **Mesh Regions** e use **Surface With Edges**. Para ver o volume refinado, selecione `internalMesh` e aplique **Slice**.
 
 Verifique células côncavas e pesos AMI na checagem ampliada. Um `Mesh OK` na checagem padrão não garante a qualidade dos resultados físicos.
+
+## Visualizar o escoamento
+
+Com o ParaView instalado, gere uma cena a partir do arquivo `.foam` da execução:
+
+```bash
+pvpython scripts/create_flow_view.py --case "runs/<run>/<run>.foam" --time 1.8
+```
+
+Abra `results/paraview/rotor_flow.pvsm` em **File → Load State** no ParaView. A cena inclui a hélice, linhas de corrente por velocidade e o tempo simulado. Use **Play** para percorrer os instantes salvos. `--output` permite escolher outra pasta de saída.
+
+Para reproduzir sem recalcular as linhas a cada quadro, acrescente `--bake --output results/paraview_light`. A exportação usa um a cada dois instantes salvos; `--frame-stride 1` mantém todos. Os arquivos PVD/VTP ficam junto do estado e devem permanecer nessa pasta. `--quality detailed` aumenta a densidade das linhas e mantém todos os instantes salvos.
 
 ## Resultados
 

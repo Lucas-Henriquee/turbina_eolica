@@ -68,7 +68,7 @@ castellatedMeshControls
 
         cylinder
         {
-            level ({{mesh_cylinder_level}} {{mesh_cylinder_level}});
+            level ({{mesh_cylinder_surface_level}} {{mesh_cylinder_surface_level}});
 
             faceZone    cylinder;
             cellZone    cylinder;

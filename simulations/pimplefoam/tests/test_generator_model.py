@@ -64,10 +64,12 @@ class GeneratorModelTests(unittest.TestCase):
 
     def test_legacy_config(self):
         del self.config["generator"]
+        del self.config["motion"]["initial_rpm"]
         for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
             del self.config["geometry"][key]
         validate_controls(self.config, ROOT / "config/templates")
         self.assertFalse(resolve_generator(self.config)["enabled"])
+        self.assertEqual(self.config["motion"]["initial_rpm"], 0.0)
 
     def test_mass_and_shaft_inertia_corrections(self):
         body = {"mass": 0.117451266141, "centreOfMass": [0.002, 0.015, -0.003],
@@ -113,6 +115,12 @@ class GeneratorModelTests(unittest.TestCase):
                     data, columns, _, summary = analyze(case)
                     result = dict(zip(columns, data.T))
                     self.assertAlmostEqual(summary["energy_balance_residual_J"], 0, places=12)
+                    balance = summary["free_torque_balance"]
+                    if omega:
+                        self.assertAlmostEqual(balance["mean_aero_drive_torque_N_m"], abs(torque))
+                        self.assertAlmostEqual(balance["balance_residual_N_m"], 0, places=12)
+                    else:
+                        self.assertIsNone(balance)
                     if enabled:
                         np.testing.assert_allclose(result["generator_load_power_W"] + result["generator_internal_loss_W"] + result["generator_shunt_loss_W"],
                                                    -result["generator_torque_y_N_m"] * omega, atol=1e-14)

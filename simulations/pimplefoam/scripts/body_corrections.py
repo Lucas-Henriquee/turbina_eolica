@@ -3,6 +3,16 @@
 import numpy as np
 
 
+def shaft_angular_momentum(body, centre, omega_y):
+    # O sixDoF usa a inércia transladada ao centro de rotação.
+    offset = np.array(body["centreOfMass"]) - centre
+    inertia = np.array(body["momentOfInertia"]) + body["mass"] * (
+        np.dot(offset, offset) - offset**2
+    )
+    axes = np.array(body["orientation"]).reshape(3, 3)
+    return inertia * (axes.T @ [0.0, omega_y, 0.0])
+
+
 def apply_body_corrections(body, geometry):
     mass_delta = float(geometry.get("mass_correction_kg", 0.0))
     inertia_delta = float(geometry.get("shaft_inertia_correction_kg_m2", 0.0))

@@ -6,17 +6,16 @@ source scripts/foam_helpers.sh
 
 main() {
     local prepare_args=()
-    local settings process_count mpi_timeout
-
-    if [ "$#" -gt 1 ]; then
-        print_status FAIL "Too many arguments" >&2
-        print_status INFO "Usage" './run_mpi.sh [processes]' >&2
-        return 1
-    fi
+    local settings process_count mpi_timeout initial_case
 
     # O argumento tem prioridade sobre o YAML.
-    if [ "$#" -eq 1 ]; then
+    if [ "$#" -gt 0 ] && [[ "$1" != --* ]]; then
         prepare_args=(--processes "$1")
+        shift
+    fi
+    if ! initial_case=$(read_initial_case "$@"); then
+        print_status INFO "Usage" './run_mpi.sh [processes] [--initial-case path]' >&2
+        return 1
     fi
 
     check_environment
@@ -36,6 +35,7 @@ main() {
         timeout "${mpi_timeout}s" mpirun -np "$process_count" hostname
 
     create_case_mesh --processes "$process_count"
+    initialize_flow "$initial_case"
     run_step decomposePar -force
     run_step_named "Parallel mesh motion check" checkMeshMotionParallel \
         python3 scripts/check_mesh_motion.py --processes "$process_count"
