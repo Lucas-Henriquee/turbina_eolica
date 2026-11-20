@@ -12,6 +12,12 @@ unsigned long lastSampleMs = 0;
 bool inaReady = false;
 unsigned long lastRecordCommandMs = 0;
 bool recordingLed = false;
+constexpr unsigned long STATUS_FLASH_MS = 80;
+constexpr unsigned long STATUS_FLASH_PERIOD_MS = 200;
+unsigned long statusFlashStartMs = 0;
+unsigned long statusFlashDelayMs = 0;
+unsigned int statusFlashCount = 0;
+uint32_t lastLedHallCount = 0;
 
 void scanI2c() {
   if (!INA219_SHUNT_VERIFIED) return;
@@ -25,9 +31,20 @@ void scanI2c() {
   Serial.println("I2C scan done");
 }
 
-void setRecordingLed(bool enabled) {
-  recordingLed = enabled;
-  digitalWrite(STATUS_LED_PIN, enabled ? HIGH : LOW);
+void flashStatus(unsigned int count, unsigned long nowMs, unsigned long delayMs = 0) {
+  statusFlashCount = count;
+  statusFlashStartMs = nowMs;
+  statusFlashDelayMs = delayMs;
+}
+
+void updateStatusLed(unsigned long nowMs) {
+  const unsigned long elapsed = nowMs - statusFlashStartMs;
+  if (elapsed >= statusFlashDelayMs + statusFlashCount * STATUS_FLASH_PERIOD_MS) {
+    statusFlashCount = 0;
+  }
+  const bool flashOn = statusFlashCount > 0 && elapsed >= statusFlashDelayMs &&
+      (elapsed - statusFlashDelayMs) % STATUS_FLASH_PERIOD_MS < STATUS_FLASH_MS;
+  digitalWrite(STATUS_LED_PIN, recordingLed || flashOn ? HIGH : LOW);
 }
 
 void readCommands() {
@@ -41,11 +58,13 @@ void readCommands() {
       if (!overflow) {
         if (strcmp(command, "RECORD_START") == 0) {
           lastRecordCommandMs = millis();
-          setRecordingLed(true);
+          recordingLed = true;
+          statusFlashCount = 0;
         } else if (strcmp(command, "SCAN_I2C") == 0 && !recordingLed) {
           scanI2c();
         } else if (strcmp(command, "RECORD_STOP") == 0) {
-          setRecordingLed(false);
+          recordingLed = false;
+          statusFlashCount = 0;
         } else if (strcmp(command, "RECORD_PING") == 0 && recordingLed) {
           lastRecordCommandMs = millis();
         }
@@ -99,12 +118,17 @@ void setup() {
     // Faixa de 32 V, shunt de ±320 mV e conversão contínua de 12 bits.
     inaReady = writeRegister(0x00, 0x399f);
   }
+  flashStatus(2, millis());
 }
 
 void loop() {
-  const unsigned long nowMs = millis();
   readCommands();
-  if (recordingLed && millis() - lastRecordCommandMs > RECORD_TIMEOUT_MS) setRecordingLed(false);
+  const unsigned long nowMs = millis();
+  if (recordingLed && nowMs - lastRecordCommandMs > RECORD_TIMEOUT_MS) {
+    recordingLed = false;
+    flashStatus(3, nowMs, STATUS_FLASH_PERIOD_MS);
+  }
+  updateStatusLed(nowMs);
   if (nowMs - lastSampleMs < SAMPLE_INTERVAL_MS) return;
   lastSampleMs = nowMs;
   const int64_t timestampUs = esp_timer_get_time();
@@ -112,6 +136,13 @@ void loop() {
   portENTER_CRITICAL(&pulseMux);
   hall = hallFilter.snapshot(timestampUs);
   portEXIT_CRITICAL(&pulseMux);
+  if (hall.acceptedPulses != lastLedHallCount) {
+    lastLedHallCount = hall.acceptedPulses;
+    if (!recordingLed && statusFlashCount == 0) {
+      flashStatus(1, nowMs);
+      updateStatusLed(nowMs);
+    }
+  }
 
   const char *hallStatus = "not_configured";
   double rpm = 0;
