@@ -13,8 +13,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from generator_model import resolve_generator
 
 
-def read_forces(path):
-    """2512: total/pressure/viscous. Formato antigo: pressure/viscous/porous."""
+def read_forces(path, components=False):
+    """Lê o total e, se solicitado, as parcelas de pressão e viscosidade."""
     header = []
     rows = []
     for line in path.read_text().splitlines():
@@ -31,24 +31,28 @@ def read_forces(path):
         raise ValueError(f"No data: {path}")
     description = " ".join(header)
     data = np.array(rows)
-    if "total" in description:
-        total = data[:, 1:4]
-    elif "pressure" in description and "viscous" in description:
-        total = data[:, 1:].reshape(len(data), -1, 3).sum(axis=1)
-    else:
+    groups = data[:, 1:].reshape(len(data), -1, 3)
+    has_total = "total" in description
+    if not has_total and not ("pressure" in description and "viscous" in description):
         raise ValueError(
             f"Unknown force header: {path}; total torque cannot be inferred."
         )
+    total = groups[:, 0] if has_total else groups.sum(axis=1)
+    if components:
+        offset = int(has_total)
+        if groups.shape[1] < offset + 2:
+            raise ValueError(f"Pressure and viscous components missing: {path}")
+        return np.column_stack([data[:, 0], total, groups[:, offset], groups[:, offset + 1]])
     return np.column_stack([data[:, 0], total])
 
 
-def read_force_series(case, name):
+def read_force_series(case, name, components=False):
     files = list((case / "postProcessing/forcesRotor").glob("*/" + name))
     if not files:
         raise ValueError(f"{name} missing from {case}/postProcessing/forcesRotor")
     values = {}
     for file in sorted(files, key=lambda p: float(p.parent.name)):
-        for row in read_forces(file):
+        for row in read_forces(file, components):
             values[row[0]] = row
     return np.array([values[times] for times in sorted(values)])
 
@@ -115,20 +119,68 @@ def cumulative_trapezoid(times, power):
     )
 
 
+def prescribed_torque_balance(moment, rpm, shaft_damping, generator):
+    # Usa até três voltas completas no fim da execução.
+    times = moment[:, 0]
+    period = 60 / abs(rpm)
+    turns = min(3, int((times[-1] - times[0]) / period))
+    result = {"complete_revolutions": turns}
+    if turns == 0:
+        return result
+
+    start = times[-1] - turns * period
+    window = np.r_[start, times[times > start]]
+    torques = interpolate_series(window, moment)[:, [1, 4, 7]] * np.sign(rpm)
+    mean_total, mean_pressure, mean_viscous = (
+        cumulative_trapezoid(window, component)[-1] / (window[-1] - start)
+        for component in torques.T
+    )
+    speed = abs(rpm) * np.pi / 30
+    electric = generator["electrical_damping_N_m_s_rad"] * speed
+    mechanical = (shaft_damping + generator["mechanical_damping_N_m_s_rad"]) * speed
+    result.update(
+        window_start_s=float(start),
+        window_end_s=float(times[-1]),
+        mean_aero_drive_torque_N_m=float(mean_total),
+        mean_pressure_drive_torque_N_m=float(mean_pressure),
+        mean_viscous_drive_torque_N_m=float(mean_viscous),
+        model_electrical_brake_N_m=float(electric),
+        model_mechanical_brake_N_m=float(mechanical),
+        model_total_brake_N_m=float(electric + mechanical),
+        net_drive_torque_N_m=float(mean_total - electric - mechanical),
+    )
+    return result
+
+
 def analyze(case):
     case = Path(case).resolve()
     metadata = json.loads((case / "metadata/resolved_config.json").read_text())
     config, body = metadata["config"], metadata["body"]
-    log = case / "logs/log.pimpleFoam"
-    if not log.exists():
-        log = case / "log.pimpleFoam"
-    motion = read_motion_series(log)
-    moment = read_force_series(case, "moment.dat")
+    rpm = config["motion"].get("prescribed_rpm")
+    moment = read_force_series(case, "moment.dat", components=rpm is not None)
     force = read_force_series(case, "force.dat")
     times = moment[:, 0]
     if len(times) < 2:
         raise ValueError("At least two force samples are required to integrate energy.")
-    states = interpolate_series(times, motion)
+    if rpm is None:
+        log = case / "logs/log.pimpleFoam"
+        if not log.exists():
+            log = case / "log.pimpleFoam"
+        motion = read_motion_series(log)
+        states = interpolate_series(times, motion)
+    else:
+        motion = np.zeros((len(times), 13))
+        motion[:, 0] = times
+        centre = np.array(config["geometry"]["rotation_centre"])
+        motion[:, 1:4] = centre
+        offset = np.array(body["centreOfMass"]) - centre
+        omega_y = rpm * np.pi / 30
+        angle = times * omega_y
+        motion[:, 4] = centre[0] + offset[0] * np.cos(angle) + offset[2] * np.sin(angle)
+        motion[:, 5] = centre[1] + offset[1]
+        motion[:, 6] = centre[2] - offset[0] * np.sin(angle) + offset[2] * np.cos(angle)
+        motion[:, 11] = omega_y
+        states = motion[:, 1:]
     forces = interpolate_series(times, force)
     angular = states[:, 9:12]
     omega = angular[:, 1]
@@ -242,7 +294,7 @@ def analyze(case):
         "aerodynamic_energy_J": float(energy[-1]),
         "shaft_dissipated_energy_J": float(loss_energy[-1]),
         "kinetic_energy_change_J": float(kinetic[-1] - kinetic[0]),
-        "energy_balance_residual_J": float(
+        "energy_balance_residual_J": None if rpm is not None else float(
             energy[-1] - loss_energy[-1] - (kinetic[-1] - kinetic[0])
         ),
         "mean_aerodynamic_power_W": float(energy[-1] / (times[-1] - times[0])),
@@ -260,6 +312,15 @@ def analyze(case):
             "Resíduo de energia é diagnóstico; depende da discretização e do acoplamento fluido/corpo.",
         ],
     }
+    if rpm is not None:
+        summary["prescribed_rpm_y"] = rpm
+        summary["prescribed_torque_balance"] = prescribed_torque_balance(
+            moment, rpm, config["motion"]["shaft_damping"], generator
+        )
+        summary["notes"].append(
+            "Rotação imposta. Freio e geração elétrica são referências do modelo; "
+            "a diferença de torque é compensada pela imposição de velocidade."
+        )
     if config.get("bench"):
         summary["coefficient_reference"] = "fan_disk_speed_and_rotor_swept_area"
         summary["notes"].append(

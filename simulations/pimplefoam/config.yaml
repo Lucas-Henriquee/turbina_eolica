@@ -38,6 +38,7 @@ wind:        # Velocidade prescrita na entrada.
   reference_speed: 6.0  # m/s; referência dos coeficientes nativos.
 
 motion:      # Movimento do rotor e da malha.
+  prescribed_rpm: -115.0         # RPM com sinal no eixo Y; null: rotação livre.
   ami_low_weight_correction: 0.1  # Soma mínima dos pesos de interpolação AMI.
   ami_min_cos_angle: 0.5          # Cosseno mínimo após inverter a normal do lado oposto.
   ami_max_normal_distance: 0.01   # m; distância normal máxima entre faces candidatas.
@@ -67,7 +68,7 @@ generator:   # Referência aproximada; não é a ficha do RS-775SF instalado.
   shunt_resistance_ohm: 0.1     # Ω; shunt do INA219 em série.
 
 time:        # Tempo e gravação dos campos.
-  endTime: 25.0           # s; instante final da simulação.
+  endTime: 4.0            # s; duração inicial do diagnóstico.
   deltaT: 0.0002           # s; passo de tempo inicial.
   maxDeltaT: 0.0002        # s; maior passo de tempo permitido.
   maxCo: 0.5               # Número de Courant máximo desejado.

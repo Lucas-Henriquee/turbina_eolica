@@ -92,6 +92,7 @@ class GeneratorModelTests(unittest.TestCase):
                 with self.subTest(enabled=enabled, omega=omega), tempfile.TemporaryDirectory() as temp:
                     case = Path(temp)
                     config = copy.deepcopy(self.config)
+                    config["motion"]["prescribed_rpm"] = None
                     config["generator"]["enabled"] = enabled
                     config["motion"]["shaft_damping"] = 1e-5
                     model = resolve_generator(config)
@@ -124,6 +125,49 @@ class GeneratorModelTests(unittest.TestCase):
                     else:
                         self.assertTrue(np.isnan(result["generator_load_power_W"]).all())
                         self.assertIsNone(summary["generator_load_energy_J"])
+
+    def test_prescribed_speed_reports_torque_components_without_motion_log(self):
+        config = copy.deepcopy(self.config)
+        config["motion"]["prescribed_rpm"] = -115.0
+        body = {
+            "mass": 0.118, "volume": 9.25e-5, "radius": 0.226,
+            "swept_area": np.pi * 0.226**2, "centreOfMass": [0, 0, 0],
+            "momentOfInertia": [1e-5, 0.001667, 0.001668],
+            "orientation": np.eye(3).ravel().tolist(),
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            case = Path(temp)
+            (case / "metadata").mkdir()
+            (case / "metadata/resolved_config.json").write_text(
+                json.dumps({"config": config, "body": body})
+            )
+            forces = case / "postProcessing/forcesRotor/0"
+            forces.mkdir(parents=True)
+            zero = "(0 0 0) (0 0 0) (0 0 0)"
+            (forces / "force.dat").write_text(
+                f"# time total pressure viscous\n0.1 {zero}\n4 {zero}\n"
+            )
+            for header, sample in [
+                ("total pressure viscous", "(0 -0.0004 0) (0 -0.0005 0) (0 0.0001 0)"),
+                ("pressure viscous porous", "(0 -0.0005 0) (0 0.0001 0) (0 0 0)"),
+            ]:
+                with self.subTest(header=header):
+                    moment = "# time " + header + "\n"
+                    moment += f"0.1 {sample}\n4 {sample}\n"
+                    (forces / "moment.dat").write_text(moment)
+                    _, _, motion, summary = analyze(case)
+                    self.assertAlmostEqual(summary["final_rpm_y"], -115)
+                    self.assertAlmostEqual(motion[-1, 11], -115 * np.pi / 30)
+                    self.assertIsNone(summary["energy_balance_residual_J"])
+                    balance = summary["prescribed_torque_balance"]
+                    self.assertEqual(balance["complete_revolutions"], 3)
+                    self.assertAlmostEqual(balance["window_start_s"], 4 - 3 * 60 / 115)
+                    self.assertAlmostEqual(balance["mean_aero_drive_torque_N_m"], 0.0004)
+                    self.assertAlmostEqual(balance["mean_pressure_drive_torque_N_m"], 0.0005)
+                    self.assertAlmostEqual(balance["mean_viscous_drive_torque_N_m"], -0.0001)
+                    self.assertAlmostEqual(
+                        balance["net_drive_torque_N_m"], 0.0004 - balance["model_total_brake_N_m"]
+                    )
 
 
 if __name__ == "__main__":

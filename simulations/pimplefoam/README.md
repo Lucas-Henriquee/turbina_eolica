@@ -1,6 +1,6 @@
 # PimpleFoam simulation
 
-Caso transiente para OpenFOAM 2512: `pimpleFoam`, `kOmegaSST` e rotação livre no eixo Y. Geometria em metros; entrada de ar na direção +Y.
+Caso transiente com `pimpleFoam`, `kOmegaSST` e rotação no eixo Y. Geometria em metros; entrada de ar na direção +Y.
 
 ## Preparação
 
@@ -29,6 +29,14 @@ python3 scripts/archive_case.py --status interrupted
 ```
 
 `Ctrl+C` interrompe o solver e arquiva os resultados parciais. Não execute dois scripts ao mesmo tempo nesta pasta.
+
+### Diagnóstico a 115 RPM
+
+`motion.prescribed_rpm: -115.0` fixa a rotação no sentido observado no caso livre. Vento, geometria e refinamento são os mesmos. Rode `./run_mpi.sh 6` e consulte `prescribed_torque_balance` em `results/summary.json` da execução.
+
+O balanço usa até as três últimas voltas completas. Ele separa pressão, viscosidade e freio do modelo, em N·m. `net_drive_torque_N_m` positivo indica que o modelo livre ainda aceleraria a 115 RPM. Confira se o torque por volta se repetiu antes de usar a média como referência. A duração inicial é de 4 s.
+
+Para voltar à rotação livre, use `motion.prescribed_rpm: null` e ajuste `time.endTime` à duração desejada.
 
 ## Scripts
 

@@ -8,6 +8,7 @@ from generator_model import resolve_generator
 def validate_controls(config, templates):
     config["motion"].setdefault("ami_min_cos_angle", -1.0)
     config["motion"].setdefault("ami_max_normal_distance", None)
+    config["motion"].setdefault("prescribed_rpm", None)
     for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
         config["geometry"].setdefault(key, 0.0)
     def finite(value, name, lower=None, integer=False):
@@ -74,6 +75,7 @@ def validate_controls(config, templates):
             "acceleration_relaxation",
             "acceleration_damping",
             "shaft_damping",
+            "prescribed_rpm",
             "integration",
         ],
         "time": [
@@ -189,6 +191,12 @@ def validate_controls(config, templates):
     for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
         finite(config["geometry"][key], "geometry." + key)
     finite(config["motion"]["shaft_damping"], "motion.shaft_damping", 0)
+    prescribed_rpm = config["motion"]["prescribed_rpm"]
+    if prescribed_rpm is not None:
+        rpm = finite(prescribed_rpm, "motion.prescribed_rpm")
+        if rpm == 0:
+            raise ValueError("motion.prescribed_rpm must be nonzero or null.")
+        config["motion"]["prescribed_rpm"] = rpm
     for key in ["inner_distance", "outer_distance"]:
         if config["motion"][key] is not None:
             finite(config["motion"][key], f"motion.{key}", 0)

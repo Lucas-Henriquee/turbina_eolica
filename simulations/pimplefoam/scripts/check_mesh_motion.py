@@ -33,7 +33,7 @@ def inspect_motion_log(text, minimum_weight):
 def replace_entry(text, name, value):
     result, count = re.subn(r"(?m)^" + re.escape(name) + r"\s+[^;]+;", f"{name} {value};", text)
     if count != 1:
-        raise ValueError(f"Expected one {name} entry in controlDict.")
+        raise ValueError(f"Expected one {name} entry in the dictionary.")
     return result
 
 
@@ -50,6 +50,8 @@ def check_mesh_motion(case, processes=None):
     body = metadata["body"]
     orientation = np.array(body["orientation"]).reshape(3, 3)
     minimum_weight = max(0.0, metadata["config"]["motion"]["ami_low_weight_correction"])
+    prescribed_rpm = metadata["config"]["motion"].get("prescribed_rpm")
+    dynamic_mesh = (case / "constant/dynamicMeshDict").read_text()
     results = []
     for direction in [1, -1]:
         label = "Positive" if direction > 0 else "Negative"
@@ -67,11 +69,19 @@ def check_mesh_motion(case, processes=None):
                     shutil.copytree(case / partition / "constant", target / partition / "constant")
                     shutil.copytree(case / partition / "0", target / partition / "0")
                 command = ["mpirun", "-np", str(processes), *command, "-parallel"]
-            angular_momentum = np.diag(body["momentOfInertia"]) @ (orientation.T @ np.array([0., direction * 16., 0.]))
-            text = (case / "constant/dynamicMeshDict").read_text()
-            marker = "sixDoFRigidBodyMotionCoeffs"
-            start = text.index("{", text.index(marker)) + 1
-            text = text[:start] + "\n            test true;\n            angularMomentum (" + " ".join(f"{v:.15g}" for v in angular_momentum) + ");\n" + text[start:]
+            if prescribed_rpm is not None:
+                text = replace_entry(dynamic_mesh, "omega", str(direction * 16))
+            else:
+                angular_momentum = np.diag(body["momentOfInertia"]) @ (
+                    orientation.T @ np.array([0., direction * 16., 0.])
+                )
+                marker = "sixDoFRigidBodyMotionCoeffs"
+                start = dynamic_mesh.index("{", dynamic_mesh.index(marker)) + 1
+                momentum = " ".join(f"{value:.15g}" for value in angular_momentum)
+                text = (
+                    dynamic_mesh[:start] + f"\n            test true;\n"
+                    f"            angularMomentum ({momentum});\n" + dynamic_mesh[start:]
+                )
             (target / "constant/dynamicMeshDict").write_text(text)
             control = (case / "system/controlDict").read_text()
             for key, value in {"startFrom": "startTime", "startTime": "0", "endTime": "0.4",

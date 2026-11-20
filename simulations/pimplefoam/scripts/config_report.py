@@ -155,7 +155,7 @@ def write_report(case, output=None):
         "Arquivos de saída",
         "results/motion.csv: velocidade linear e angular por passo; results/timeseries.csv: RPM, torque, potência e energia.",
         "results/*.png: gráficos; logs/: logs; arquivo .foam: ParaView.",
-        "A rotação é medida no log sixDoF; omega dos campos OpenFOAM é turbulência.",
+        "A rotação vem do log sixDoF ou do RPM prescrito; o campo omega é turbulência.",
         "Potência aerodinâmica não é potência elétrica.",
     ]
     temp = output.with_name(output.name + ".tmp")

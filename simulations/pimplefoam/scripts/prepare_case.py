@@ -155,17 +155,17 @@ def render_case_templates(root, values, profile):
     """Gera os dicionários."""
     rendered = {}
     for template in (root / "config/templates").rglob("*.template"):
+        relative = template.relative_to(root / "config/templates")
+        if relative == Path("constant/dynamicMeshDict.prescribed.template"):
+            continue
+        if relative == Path("constant/dynamicMeshDict.template") and values["prescribed_omega"] is not None:
+            template = template.with_name("dynamicMeshDict.prescribed.template")
         text = template.read_text()
         text = re.sub(r"\{\{(\w+)\}\}", lambda m: format_foam_value(values[m[1]]), text)
         text = "\n".join(line.rstrip() for line in text.splitlines()).rstrip() + "\n"
         if "{{" in text:
             raise ValueError(f"Unresolved template: {template}")
-        rendered[
-            root
-            / str(template.relative_to(root / "config/templates")).removesuffix(
-                ".template"
-            )
-        ] = text
+        rendered[root / str(relative).removesuffix(".template")] = text
     rendered[root / "constant/inletVelocityProfile.dat"] = (
         "(\n"
         + "\n".join(
@@ -387,6 +387,7 @@ def prepare_case(root=ROOT, processes=None):
     )
     body = apply_body_corrections(body, geometry)
     generator = resolve_generator(config)
+    prescribed_rpm = config["motion"]["prescribed_rpm"]
     values = {
         "rotor_file": geometry["rotor_stl"],
         "rotor_feature": Path(geometry["rotor_stl"]).with_suffix(".eMesh").name,
@@ -423,6 +424,7 @@ def prepare_case(root=ROOT, processes=None):
         "motion_gravity": config["motion"]["gravity"],
         "motion_relaxation": config["motion"]["acceleration_relaxation"],
         "motion_damping": config["motion"]["acceleration_damping"],
+        "prescribed_omega": None if prescribed_rpm is None else prescribed_rpm * (np.pi / 30),
         "shaft_damping": config["motion"]["shaft_damping"],
         "generator_damping": generator["electrical_damping_N_m_s_rad"],
         "generator_mechanical_damping": generator["mechanical_damping_N_m_s_rad"],
