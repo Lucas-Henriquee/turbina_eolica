@@ -176,6 +176,11 @@ def read_controls(case):
     return target, omega, thresholds
 
 
+def status_line(status, label, detail):
+    tag = f"[{status}]"
+    return f"{tag:<6} {label:<24} {detail}"
+
+
 def render(root, stale_seconds=120, now=None):
     now = time.time() if now is None else now
     case = select_case(root)
@@ -212,33 +217,42 @@ def render(root, stale_seconds=120, now=None):
     eta = "~" + duration(estimate) if estimate is not None else "--"
     if converged or (ended and fraction == 1):
         eta = "00:00:00"
+    level = {
+        "ACTIVE": "RUN",
+        "CONVERGED": "OK",
+        "COMPLETED": "OK",
+        "SOLVER FINISHED": "OK",
+        "FAILED": "FAIL",
+        "INTERRUPTED": "WARN",
+        "NO RECENT OUTPUT": "WARN",
+    }.get(status, "INFO")
+    current = number(last.time if last else None)
     lines = [
-        f"SIMPLEFOAM | {status}",
-        f"Case      {case}",
-        "",
-        f"Budget    {progress_bar(fraction)}",
-        f"Iteration {number(last.time if last else None)} / {number(target)}",
+        status_line(level, "OpenFOAM", f"simpleFoam | {status.title()}"),
+        status_line("INFO", "Case", case),
+        status_line("INFO", "Iteration budget", progress_bar(fraction)),
+        status_line("INFO", "Iteration", f"{current} / {number(target)}"),
     ]
     if last:
+        rpm = omega * 60 / (2 * math.pi) if omega is not None else None
         lines += [
-            f"Wall log  {duration(last.wall)}   | ETA to limit {eta}",
-            f"MRF speed {number(omega * 60 / (2 * math.pi) if omega is not None else None)} RPM (Y)",
-            "Initial residuals / targets",
+            status_line("INFO", "Solver time", f"{duration(last.wall)} | ETA to limit {eta}"),
+            status_line("INFO", "MRF speed", f"{number(rpm)} RPM (Y)"),
         ]
+        residuals = []
         for field in ["p", "U", "k", "omega"]:
-            lines.append(
-                f"  {field:<7} {number(last.residuals.get(field), 3):>9} / {number(thresholds.get(field), 3)}"
-            )
+            residual = number(last.residuals.get(field), 3)
+            threshold = number(thresholds.get(field), 3)
+            residuals.append(f"{field} {residual}/{threshold}")
+        lines.append(status_line("INFO", "Residuals / targets", " | ".join(residuals)))
     else:
         latest = max((log_path(case, name) for name in STAGES), key=modified)
-        lines.append(
-            f"Stage     {STAGES[latest.name] if latest.is_file() else 'Waiting for solver output'}"
-        )
-    lines += [
-        f"Log       {log.relative_to(case)}   | Last output {duration(age)} ago",
-        "",
-        "Budget tracks iterations, not convergence. SIMPLE may converge earlier.",
-    ]
+        stage = STAGES[latest.name] if latest.is_file() else "Waiting for solver output"
+        lines.append(status_line("INFO", "Stage", stage))
+    log_detail = str(log.relative_to(case))
+    if age is not None:
+        log_detail += f" | Updated {duration(age)} ago"
+    lines.append(status_line("INFO", "Log", log_detail))
     return "\n".join(lines)
 
 

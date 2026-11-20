@@ -101,6 +101,7 @@ def read_controls(case):
         if match:
             controls[name] = float(match[1])
     controls["startTime"] = controls["startTime"] or 0.0
+    controls["prescribed_rpm"] = config.get("motion", {}).get("prescribed_rpm")
     return controls
 
 
@@ -242,6 +243,11 @@ def run_status(case, log, controls, now, stale_seconds):
     return "ACTIVE"
 
 
+def status_line(status, label, detail):
+    tag = f"[{status}]"
+    return f"{tag:<6} {label:<24} {detail}"
+
+
 def render(root, stale_seconds=120, now=None):
     now = time.time() if now is None else now
     case = select_case(root)
@@ -258,35 +264,50 @@ def render(root, stale_seconds=120, now=None):
     eta = "~" + duration(remaining) if remaining is not None else "--"
     if status in ("COMPLETED", "FINALIZING", "SOLVER FINISHED") and fraction == 1:
         eta = duration(0)
+    level = {
+        "ACTIVE": "RUN",
+        "FINALIZING": "RUN",
+        "COMPLETED": "OK",
+        "SOLVER FINISHED": "OK",
+        "FAILED": "FAIL",
+        "ENDED EARLY": "WARN",
+        "INTERRUPTED": "WARN",
+        "NO RECENT OUTPUT": "WARN",
+    }.get(status, "INFO")
+    current = number(last.time if last else None)
     lines = [
-        f"WIND TURBINE | {status}",
-        f"Case      {case}",
-        "",
-        f"Progress  {progress_bar(fraction)}",
-        f"Time      {number(last.time if last else None)} / {number(target)} s",
+        status_line(level, "OpenFOAM", f"pimpleFoam | {status.title()}"),
+        status_line("INFO", "Case", case),
+        status_line("INFO", "Progress", progress_bar(fraction)),
+        status_line("INFO", "Simulated time", f"{current} / {number(target)} s"),
     ]
     if last:
+        rotor = f"{number(last.rpm)} RPM (Y)"
+        if last.rpm is None and controls["prescribed_rpm"] is not None:
+            rotor = f"{number(controls['prescribed_rpm'])} RPM (Y, prescribed)"
+        courant = f"{number(last.courant)} / {number(controls['maxCo'])}"
         lines.extend(
             [
-                f"Wall log  {duration(last.wall)}   | ETA {eta}",
-                f"Step      {number(last.delta)} s   | Co max {number(last.courant)} / {number(controls['maxCo'])}",
-                f"Rotor     {number(last.rpm)} RPM (Y)",
-                f"Residuals p {number(last.pressure_residual, 3)}   | U max {number(last.velocity_residual, 3)}",
+                status_line("INFO", "Solver time", f"{duration(last.wall)} | ETA {eta}"),
+                status_line(
+                    "INFO", "Time step", f"{number(last.delta)} s | Co max {courant}"
+                ),
+                status_line("INFO", "Rotor", rotor),
+                status_line(
+                    "INFO",
+                    "Final residuals",
+                    f"p {number(last.pressure_residual, 3)} | U max {number(last.velocity_residual, 3)}",
+                ),
             ]
         )
     else:
         latest = max((log_path(case, name) for name in STAGES), key=modified)
-        lines.append(
-            f"Stage     {STAGES[latest.name] if latest.is_file() else 'Waiting for solver output'}"
-        )
-    age = duration(now - log.modified) if log.modified else "--"
-    lines.extend(
-        [
-            f"Log       {path.relative_to(case)}   | Last output {age} ago",
-            "",
-            "Progress tracks simulated time. ETA covers the solver only.",
-        ]
-    )
+        stage = STAGES[latest.name] if latest.is_file() else "Waiting for solver output"
+        lines.append(status_line("INFO", "Stage", stage))
+    log_detail = str(path.relative_to(case))
+    if log.modified is not None:
+        log_detail += f" | Updated {duration(now - log.modified)} ago"
+    lines.append(status_line("INFO", "Log", log_detail))
     return "\n".join(lines)
 
 
