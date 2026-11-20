@@ -8,7 +8,7 @@ archive_failed_run() {
     fi
     cp -- "$destination/config.txt" config.txt
     print_status INFO "Saved" "${destination#"$PWD"/}" >&2
-    echo "Log: ${destination#"$PWD"/}/logs/log.$log_name" >&2
+    print_status INFO "Log" "${destination#"$PWD"/}/logs/log.$log_name" >&2
 }
 
 run_solver() {
@@ -74,7 +74,7 @@ finish_run() {
     fi
     if [ "$status" -ne 0 ]; then
         print_status FAIL "Post-processing" "exit $status" >&2
-        echo "Logs: $relative_destination/logs/" >&2
+        print_status INFO "Logs" "$relative_destination/logs/" >&2
         return "$status"
     fi
     print_status OK "Post-processing" "$((SECONDS - start))s"
@@ -83,6 +83,6 @@ finish_run() {
         > "$destination/logs/log.summary" 2>&1
     print_status DONE "Simulation complete"
     print_total_time
-    echo "Results: $relative_destination/results/"
-    echo "Logs:    $relative_destination/logs/"
+    print_status INFO "Results" "$relative_destination/results/"
+    print_status INFO "Logs" "$relative_destination/logs/"
 }

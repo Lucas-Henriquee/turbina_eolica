@@ -13,8 +13,8 @@ main() {
 
     print_status DONE "Mesh ready"
     print_total_time
-    echo 'View: paraFoam -builtin'
-    echo 'Logs: log.*'
+    print_status INFO "Open in ParaView" 'paraFoam -builtin'
+    print_status INFO "Logs" 'log.*'
 }
 
 main "$@"

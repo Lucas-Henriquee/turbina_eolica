@@ -11,7 +11,9 @@ plots_enabled() {
 check_environment() {
     if [ -z "${WM_PROJECT_DIR:-}" ]; then
         print_status FAIL "OpenFOAM not loaded" >&2
-        echo 'Run: source /usr/lib/openfoam/openfoam2512/etc/bashrc' >&2
+        print_status INFO "Locate OpenFOAM" \
+            "find /usr/lib/openfoam /opt -ipath '*/openfoam*/etc/bashrc' 2>/dev/null" >&2
+        print_status INFO "Load the returned path" 'source "/path/to/openfoam/etc/bashrc"' >&2
         return 1
     fi
     require_commands \
@@ -19,7 +21,7 @@ check_environment() {
 
     if ! python3 -c 'import yaml, numpy, matplotlib' > log.dependencies 2>&1; then
         print_status FAIL "Python dependencies" "log.dependencies" >&2
-        echo 'Run from repository root: python3 -m pip install -r requirements.txt' >&2
+        print_status INFO "Install from repo root" 'python3 -m pip install -r requirements.txt' >&2
         return 1
     fi
     # Preserva resultados existentes.
@@ -30,7 +32,7 @@ check_environment() {
             -regex '\./[0-9]+(\.[0-9]+)?([eE][-+]?[0-9]+)?' \
             ! -path './0' -print -quit)" ]; then
         print_status FAIL "Existing mesh or results" >&2
-        echo 'Run: python3 scripts/archive_case.py --status interrupted' >&2
+        print_status INFO "Archive existing run" 'python3 scripts/archive_case.py --status interrupted' >&2
         return 1
     fi
 }

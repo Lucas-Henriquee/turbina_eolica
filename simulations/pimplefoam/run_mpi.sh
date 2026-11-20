@@ -9,7 +9,8 @@ main() {
     local settings process_count mpi_timeout
 
     if [ "$#" -gt 1 ]; then
-        echo 'Usage: ./run_mpi.sh [processes]' >&2
+        print_status FAIL "Too many arguments" >&2
+        print_status INFO "Usage" './run_mpi.sh [processes]' >&2
         return 1
     fi
 

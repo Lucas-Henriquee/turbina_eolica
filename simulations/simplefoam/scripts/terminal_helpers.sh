@@ -4,8 +4,10 @@ CASE_START_SECONDS=$SECONDS
 
 print_total_time() {
     local elapsed=$((SECONDS - CASE_START_SECONDS))
-    printf 'Total:   %02d:%02d:%02d\n' \
+    local formatted
+    printf -v formatted '%02d:%02d:%02d' \
         "$((elapsed / 3600))" "$((elapsed % 3600 / 60))" "$((elapsed % 60))"
+    print_status INFO "Total time" "$formatted"
 }
 
 print_status() {
