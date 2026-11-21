@@ -146,8 +146,22 @@ def validate_controls(config, templates):
     if isinstance(mesh, dict) and "cylinder_surface_level" in mesh:
         schema["mesh"].append("cylinder_surface_level")
         finite(mesh["cylinder_surface_level"], "mesh.cylinder_surface_level", 0, True)
+    if isinstance(mesh, dict) and "y_grading" in mesh:
+        schema["mesh"].append("y_grading")
     for section, allowed in schema.items():
         keys(config[section], allowed, section)
+    if "y_grading" in mesh:
+        sections = mesh["y_grading"]
+        if not isinstance(sections, list) or not sections:
+            raise ValueError("mesh.y_grading requires at least one section.")
+        for row in sections:
+            if not isinstance(row, list) or len(row) != 3:
+                raise ValueError("mesh.y_grading entries require [length, cells, expansion].")
+            finite(row[0], "mesh.y_grading length", 1e-12)
+            finite(row[1], "mesh.y_grading cells", 1, True)
+            finite(row[2], "mesh.y_grading expansion", 1e-12)
+        if sum(row[1] for row in sections) != mesh["cells"][1]:
+            raise ValueError("mesh.y_grading cells must sum to mesh.cells[1].")
     if "generator" in config:
         if not isinstance(config["generator"]["enabled"], bool):
             raise ValueError("generator.enabled must be true or false.")

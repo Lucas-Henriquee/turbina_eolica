@@ -432,6 +432,7 @@ def prepare_case(root=ROOT, processes=None):
         "generator_damping": generator["electrical_damping_N_m_s_rad"],
         "generator_mechanical_damping": generator["mechanical_damping_N_m_s_rad"],
         "mesh_cells": mesh["cells"],
+        "mesh_y_grading": mesh.get("y_grading", 1),
         "mesh_location": mesh["location_in_mesh"],
         "mesh_layers": mesh["add_layers"],
         "mesh_nlayers": mesh["surface_layers"],
