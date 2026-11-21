@@ -32,7 +32,9 @@ python3 scripts/archive_case.py --status interrupted
 
 ### Partida livre
 
-O `config.yaml` inicia com ar e rotor em repouso e roda por 1 s de tempo físico. A malha gerada no OpenFOAM 2512 tem 52.350 células. A entrada de 7,09 m/s produz 6,20 m/s no centro a 1 m no caso sem hélice. A partição `simple` com divisões `[2, 3, 1]` passou na checagem da AMI com seis processos.
+O `config.yaml` inicia com ar e rotor em repouso e roda por 0,5 s de tempo físico. A malha gerada no OpenFOAM 2512 tem 52.350 células. A entrada de 7,09 m/s produz 6,20 m/s no centro a 1 m no caso sem hélice. A partição `simple` com divisões `[2, 3, 1]` passou na checagem da AMI com seis processos.
+
+O piloto de desempenho usa Courant máximo de 1,0, dois ciclos externos, duas correções de pressão e uma correção não ortogonal. Compare o RPM, a AMI e o tempo do trecho de 0,4 a 0,5 s com o caso de referência.
 
 ```bash
 ./run_mpi.sh 6
