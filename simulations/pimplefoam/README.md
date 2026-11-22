@@ -32,9 +32,9 @@ python3 scripts/archive_case.py --status interrupted
 
 ### Partida livre
 
-O `config.yaml` inicia com ar e rotor em repouso e roda por 0,5 s de tempo físico. A malha gerada no OpenFOAM 2512 tem 52.350 células. A entrada de 7,09 m/s produz 6,20 m/s no centro a 1 m no caso sem hélice. A partição `simple` com divisões `[2, 3, 1]` passou na checagem da AMI com seis processos.
+O `config.yaml` inicia com ar e rotor em repouso e roda por 9 s de tempo físico. A malha gerada no OpenFOAM 2512 tem 52.350 células. A entrada de 7,09 m/s produz 6,20 m/s no centro a 1 m no caso sem hélice. A partição `simple` com divisões `[2, 3, 1]` passou na checagem da AMI com seis processos.
 
-O piloto de desempenho usa Courant máximo de 1,0, dois ciclos externos, duas correções de pressão e uma correção não ortogonal. Compare o RPM, a AMI e o tempo do trecho de 0,4 a 0,5 s com o caso de referência.
+O ensaio usa os parâmetros do piloto de 0,5 s no OpenFOAM 2412, com Courant máximo de 1,0, dois ciclos externos, duas correções de pressão e uma correção não ortogonal.
 
 ```bash
 ./run_mpi.sh 6
@@ -56,9 +56,9 @@ Use um caso SimpleFoam concluído, com a mesma hélice, vento e rotação próxi
 
 Para testar a partida livre, configure `motion.prescribed_rpm: null` e `motion.initial_rpm: 0.0`. Se o vento já estiver estabelecido antes de liberar o rotor, use `--initial-case` com um SimpleFoam executado com `rotation.angular_velocity: 0.0`. Para ligar o ventilador com ar e rotor em repouso, use `initial.velocity: [0, 0, 0]` e execute `./run_mpi.sh 6`. Use em `wind.profile` a subida medida do vento, quando disponível.
 
-Comece com `time.endTime: 1.0` nos dois modos. No prescrito a 132 RPM, 2 s permitem comparar três voltas completas após a primeira volta. No livre, use 12 s para a primeira comparação e confira a tendência das médias de RPM e do saldo de torque nas últimas voltas. Se ainda houver deriva, rode 20 s e reavalie antes de escolher 25 s.
+No prescrito a 132 RPM, 2 s permitem comparar três voltas completas após a primeira volta. No livre, use os 9 s configurados para acompanhar as médias de RPM e de saldo de torque nas últimas voltas.
 
-Estenda o último ponto de `wind.profile` até `time.endTime`. No caso de bancada de 12 s, use `[[0.0, 7.09], [12.0, 7.09]]`.
+Estenda o último ponto de `wind.profile` até `time.endTime`. Para o ensaio de 9 s, use `[[0.0, 7.09], [9.0, 7.09]]`.
 
 ## Scripts
 
