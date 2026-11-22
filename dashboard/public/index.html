@@ -131,9 +131,9 @@
           </article>
           <article class="metric panel">
             <div class="card-heading">
-              <span>Electrical power</span><span class="metric-symbol">W</span>
+              <span>Electrical power</span><span class="metric-symbol">mW</span>
             </div>
-            <div class="metric-value"><strong id="power">--</strong><small>W</small></div>
+            <div class="metric-value"><strong id="power">--</strong><small>mW</small></div>
             <svg
               id="powerTrend"
               class="sparkline"
@@ -145,9 +145,9 @@
           </article>
           <article class="metric panel">
             <div class="card-heading">
-              <span>Electrical energy</span><span class="metric-symbol">J</span>
+              <span>Electrical energy</span><span class="metric-symbol">mJ</span>
             </div>
-            <div class="metric-value"><strong id="energy">--</strong><small>J</small></div>
+            <div class="metric-value"><strong id="energy">--</strong><small>mJ</small></div>
             <svg
               id="energyTrend"
               class="sparkline"
@@ -173,7 +173,8 @@
               <option value="rpm_raw">RPM · raw diagnostic</option>
               <option value="load_voltage_V">Voltage · V</option>
               <option value="current_A">Current · A</option>
-              <option value="electrical_power_W">Power · W</option></select
+              <option value="electrical_power_W">Power · mW</option>
+              <option value="electrical_energy_J">Energy · mJ</option></select
             ><select id="plotWindow" aria-label="Chart time window">
               <option value="15">15 s</option>
               <option value="30">30 s</option>
