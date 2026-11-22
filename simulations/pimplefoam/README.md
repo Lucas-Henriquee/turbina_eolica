@@ -32,7 +32,7 @@ python3 scripts/archive_case.py --status interrupted
 
 ### Partida livre
 
-O caso roda por 12 s com a malha de referência de 52.350 células. O ar parte do repouso, e o rotor é acelerado pelo torque aerodinâmico desde 0 RPM. A entrada tem 7,09 m/s.
+O caso roda por 12 s com a malha de referência de 52.350 células. O ar parte do repouso, e o rotor é acelerado pelo torque aerodinâmico desde 0 RPM. Na calibração sem hélice, a entrada de 6,86 m/s produziu 6,199 m/s no centro a 1 m, em uma malha de 15.078 células com refinamento cilíndrico.
 
 A configuração de desempenho usa `maxCo: 1.25`, um ciclo externo, duas correções de pressão e uma correção não ortogonal. Foi comparada em pilotos curtos. Confira a AMI e o torque antes de usar o resultado como referência.
 
@@ -53,7 +53,7 @@ Para testar a partida livre, configure `motion.prescribed_rpm: null` e `motion.i
 
 No prescrito a 132 RPM, 2 s permitem comparar três voltas completas após a primeira volta. No livre, use os 12 s configurados para acompanhar as médias de RPM e de saldo de torque nas últimas voltas.
 
-Estenda o último ponto de `wind.profile` até `time.endTime`. Para o ensaio de 12 s, use `[[0.0, 7.09], [12.0, 7.09]]`.
+Estenda o último ponto de `wind.profile` até `time.endTime`. Para o ensaio de 12 s, use `[[0.0, 6.86], [12.0, 6.86]]`.
 
 ## Scripts
 

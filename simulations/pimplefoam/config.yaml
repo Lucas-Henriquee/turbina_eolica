@@ -33,9 +33,9 @@ turbulence:  # Turbulência na entrada.
 
 wind:        # Velocidade prescrita na entrada.
   profile:              # Pares [tempo em s, velocidade em m/s].
-    - [0.0, 7.09]
-    - [12.0, 7.09]
-  reference_speed: 7.09  # m/s; referência dos coeficientes nativos.
+    - [0.0, 6.86]
+    - [12.0, 6.86]
+  reference_speed: 6.86  # m/s na grade; referência dos coeficientes nativos.
 
 motion:      # Movimento do rotor e da malha.
   prescribed_rpm: null         # RPM com sinal no eixo Y; null: rotação livre.
