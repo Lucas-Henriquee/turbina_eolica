@@ -1,11 +1,3 @@
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM                                        |
-|  \\    /   O peration     |                                                 |
-|   \\  /    A nd           |                                                 |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-
 FoamFile
 {
     version     2.0;
@@ -14,93 +6,12 @@ FoamFile
     object      dynamicMeshDict;
 }
 
-dynamicFvMesh   dynamicMultiMotionSolverFvMesh;
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+motionSolver    solidBody;
+cellZone        cylinder;
 
-dynamicMultiMotionSolverFvMeshCoeffs
-{
-    rotor
-    {
+solidBodyMotionFunction rotatingMotion;
 
-        // Restringe o movimento à zona cilíndrica.
-        cellZone cylinder;
-
-        solver sixDoFRigidBodyMotion;
-
-        sixDoFRigidBodyMotionCoeffs
-        {
-
-            patches (propeller);
-
-            innerDistance 0.38;
-            outerDistance 0.48;
-
-            centreOfMass
-            (4.41986008343e-09 0.0131420235794 3.33069234091e-09);
-
-            mass 0.118185220725;
-            orientation (0.99995598397 0 -0.00938243691236 -0 1 0 0.00938243691236 0 0.99995598397);
-            initialOrientation (0.99995598397 0 -0.00938243691236 -0 1 0 0.00938243691236 0 0.99995598397);
-
-            momentOfInertia
-            (7.62481236749e-06 0.0016667785845 0.00166858597583);
-            angularMomentum (0 0 0);
-
-            rho     rhoInf;
-            rhoInf  1.225;
-
-            g (0 0 0);
-
-            report on;
-
-            accelerationRelaxation 0.7;
-            accelerationDamping    1;
-
-            solver
-            {
-                type Newmark;
-                gamma 0.5;
-                beta 0.25;
-            }
-
-            // Centro fixo; rotação no eixo Y.
-            constraints
-            {
-
-                fixedCentre
-                {
-                    sixDoFRigidBodyMotionConstraint point;
-                    centreOfRotation (0 0 0);
-                }
-
-                rotationY
-                {
-                    sixDoFRigidBodyMotionConstraint axis;
-                    axis (0 1 0);
-                }
-            }
-
-            restraints
-            {
-
-                shaftViscousDamping
-                {
-                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
-                    coeff 0;
-                }
-
-                generatorElectricalLoad
-                {
-                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
-                    coeff 5.80365755722e-06;
-                }
-
-                generatorMechanicalLoss
-                {
-                    sixDoFRigidBodyMotionRestraint sphericalAngularDamper;
-                    coeff 9.20250782491e-06;
-                }
-            }
-
-        }
-    }
-}
+origin          (0 0 0);
+axis            (0 1 0);
+omega           -13.8230076758; // rad/s
