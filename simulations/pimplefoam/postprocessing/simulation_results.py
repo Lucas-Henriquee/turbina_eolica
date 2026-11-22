@@ -176,10 +176,59 @@ def free_torque_balance(times, torque, omega, inertia, damping):
     }
 
 
-def analyze(case):
+def bench_electrical_output(times, rpm, calibration):
+    volts_per_rpm, min_rpm, max_rpm, load_resistance = calibration
+    speed = np.abs(rpm)
+    valid = (speed >= min_rpm) & (speed <= max_rpm)
+    voltage = np.where(valid, volts_per_rpm * speed, np.nan)
+    current = voltage / load_resistance
+    power = voltage * current
+    values = np.column_stack([voltage, current, power])
+    # Integra só intervalos com amostras válidas nas duas extremidades.
+    intervals = valid[:-1] & valid[1:]
+    time_steps = np.diff(times)
+    dt = time_steps[intervals]
+    energy_steps = np.zeros_like(time_steps, dtype=float)
+    energy_steps[intervals] = (power[:-1][intervals] + power[1:][intervals]) * dt / 2
+    energy = np.where(valid, np.r_[0.0, np.cumsum(energy_steps)], np.nan)
+    duration = float(dt.sum())
+    mean_voltage, mean_current, mean_power = (
+        ((values[:-1][intervals] + values[1:][intervals]) / 2).T @ dt / duration
+        if duration > 0
+        else (None, None, None)
+    )
+    summary = {
+        "volts_per_rpm": volts_per_rpm,
+        "rpm_range": [min_rpm, max_rpm],
+        "load_resistance_ohm": load_resistance,
+        "valid_samples": int(valid.sum()),
+        "valid_duration_s": duration,
+        "mean_load_voltage_V": mean_voltage,
+        "mean_current_A": mean_current,
+        "mean_load_power_W": mean_power,
+        "load_energy_J": float(energy_steps.sum()) if duration > 0 else None,
+    }
+    return np.column_stack([values, energy]), summary
+
+
+def analyze(case, bench_calibration=None):
     case = Path(case).resolve()
     metadata = json.loads((case / "metadata/resolved_config.json").read_text())
     config, body = metadata["config"], metadata["body"]
+    generator = resolve_generator(config)
+    if bench_calibration is not None:
+        volts_per_rpm, min_rpm, max_rpm, load_resistance = bench_calibration
+        if (
+            not np.isfinite(bench_calibration).all()
+            or volts_per_rpm <= 0
+            or not 0 <= min_rpm < max_rpm
+            or load_resistance <= 0
+        ):
+            raise ValueError("Invalid bench calibration coefficient, RPM range or resistance.")
+        if not generator["enabled"] or not np.isclose(
+            load_resistance, generator["load_resistance_ohm"], rtol=0, atol=1e-9
+        ):
+            raise ValueError("Bench calibration resistance must match the enabled generator load.")
     rpm = config["motion"].get("prescribed_rpm")
     moment = read_force_series(case, "moment.dat", components=rpm is not None)
     force = read_force_series(case, "force.dat")
@@ -227,7 +276,6 @@ def analyze(case):
         * speed[valid] ** 2
         * body["radius"]
     )
-    generator = resolve_generator(config)
     electrical_loss = generator["electrical_damping_N_m_s_rad"] * omega**2
     generator_mechanical_loss = generator["mechanical_damping_N_m_s_rad"] * omega**2
     mechanical_loss = config["motion"]["shaft_damping"] * omega**2 + generator_mechanical_loss
@@ -379,11 +427,26 @@ def analyze(case):
     summary["notes"].append(
         "Torques médios são médias temporais trapezoidais no intervalo informado, incluindo a partida."
     )
+    if bench_calibration is not None:
+        values, bench_summary = bench_electrical_output(times, data[:, 3], bench_calibration)
+        data = np.column_stack([data, values])
+        columns.extend([
+            "bench_load_voltage_V",
+            "bench_current_A",
+            "bench_load_power_W",
+            "bench_load_energy_J",
+        ])
+        summary["bench_electrical_estimate"] = bench_summary
+        summary["notes"].append(
+            "Estimativa de bancada em módulo, restrita à faixa de RPM e à carga da calibração. "
+            "Corrente calculada por V/R e energia integrada só nos intervalos válidos. "
+            "O balanço do solver usa as perdas originais."
+        )
     return data, columns, motion, summary
 
 
-def save_analysis(case):
-    data, columns, motion, summary = analyze(case)
+def save_analysis(case, bench_calibration=None):
+    data, columns, motion, summary = analyze(case, bench_calibration)
     output = Path(case) / "results"
     output.mkdir(exist_ok=True)
     np.savetxt(

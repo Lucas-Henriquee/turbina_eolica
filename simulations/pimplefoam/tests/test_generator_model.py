@@ -15,7 +15,7 @@ sys.path[:0] = [str(ROOT / "scripts"), str(ROOT / "postprocessing")]
 from generator_model import resolve_generator
 from body_corrections import apply_body_corrections
 from config_validation import validate_controls
-from simulation_results import analyze, save_analysis
+from simulation_results import analyze, bench_electrical_output, save_analysis
 from check_mesh_motion import inspect_motion_log
 
 
@@ -176,6 +176,36 @@ class GeneratorModelTests(unittest.TestCase):
                     self.assertAlmostEqual(
                         balance["net_drive_torque_N_m"], 0.0004 - balance["model_total_brake_N_m"]
                     )
+
+            config["motion"]["prescribed_rpm"] = -132.0
+            (case / "metadata/resolved_config.json").write_text(
+                json.dumps({"config": config, "body": body})
+            )
+            baseline, baseline_columns, _, reference = analyze(case)
+            data, columns, _, calibrated = analyze(case, (0.000396, 120, 140, 10))
+            np.testing.assert_array_equal(data[:, :len(baseline_columns)], baseline)
+            self.assertEqual(
+                calibrated["prescribed_torque_balance"], reference["prescribed_torque_balance"]
+            )
+            np.testing.assert_allclose(data[:, columns.index("bench_load_voltage_V")], 0.052272)
+            with self.assertRaisesRegex(ValueError, "must match"):
+                analyze(case, (0.000396, 120, 140, 20))
+
+    def test_bench_calibration_excludes_samples_and_intervals_outside_rpm_range(self):
+        data, summary = bench_electrical_output(
+            np.array([0, 1, 2, 3, 6, 9, 10]),
+            np.array([0, -120, -130, -141, -140, -130, 0]),
+            (0.000396, 120, 140, 10),
+        )
+        self.assertTrue(np.isnan(data[[0, 3, 6]]).all())
+        self.assertEqual(summary["valid_samples"], 4)
+        self.assertEqual(summary["valid_duration_s"], 4)
+        self.assertAlmostEqual(summary["mean_load_voltage_V"], (125 + 3 * 135) / 4 * 0.000396)
+        np.testing.assert_allclose(data[:, 1], data[:, 0] / 10)
+        np.testing.assert_allclose(data[:, 2], data[:, 0] ** 2 / 10)
+        self.assertAlmostEqual(data[4, 3], data[2, 3])
+        self.assertAlmostEqual(summary["load_energy_J"], data[5, 3])
+        self.assertAlmostEqual(summary["load_energy_J"], summary["mean_load_power_W"] * 4)
 
 
 if __name__ == "__main__":
