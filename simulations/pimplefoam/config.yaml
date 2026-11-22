@@ -34,7 +34,7 @@ turbulence:  # Turbulência na entrada.
 wind:        # Velocidade prescrita na entrada.
   profile:              # Pares [tempo em s, velocidade em m/s].
     - [0.0, 7.09]
-    - [9.0, 7.09]
+    - [12.0, 7.09]
   reference_speed: 7.09  # m/s; referência dos coeficientes nativos.
 
 motion:      # Movimento do rotor e da malha.
@@ -69,10 +69,10 @@ generator:   # Referência aproximada; não é a ficha do RS-775SF instalado.
   shunt_resistance_ohm: 0.1     # Ω; shunt do INA219 em série.
 
 time:        # Tempo e gravação dos campos.
-  endTime: 9.0            # s; duração do ensaio no laboratório.
+  endTime: 12.0            # s; duração do ensaio no laboratório.
   deltaT: 0.0002           # s; passo de tempo inicial.
   maxDeltaT: 0.0002        # s; maior passo de tempo permitido.
-  maxCo: 1.0               # Número de Courant máximo desejado.
+  maxCo: 1.25               # Número de Courant máximo desejado.
   writeInterval: 0.1       # s; intervalo dos campos para ParaView.
   writePrecision: 10       # Algarismos dos campos em formato ASCII.
   adjustTimeStep: true     # Ajusta o passo pelo limite de Courant.
@@ -155,7 +155,7 @@ mesh:        # Domínio e refinamento.
   feature_included_angle: 150                 # Graus; ângulo de extração de arestas do STL.
 
 numerics:    # Acoplamento pressão-velocidade.
-  nOuterCorrectors: 2          # Ciclos externos PIMPLE por passo.
+  nOuterCorrectors: 1          # Ciclos externos PIMPLE por passo.
   nCorrectors: 2               # Correções de pressão por ciclo.
   nNonOrthogonalCorrectors: 1  # Correções extras de não ortogonalidade.
   momentumPredictor: true      # Resolve a velocidade antes da pressão.

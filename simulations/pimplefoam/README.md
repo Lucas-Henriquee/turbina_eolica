@@ -32,15 +32,10 @@ python3 scripts/archive_case.py --status interrupted
 
 ### Partida livre
 
-O `config.yaml` inicia com ar e rotor em repouso e roda por 9 s de tempo físico. A malha gerada no OpenFOAM 2512 tem 52.350 células. A entrada de 7,09 m/s produz 6,20 m/s no centro a 1 m no caso sem hélice. A partição `simple` com divisões `[2, 3, 1]` passou na checagem da AMI com seis processos.
+O caso roda por 12 s com a malha de referência de 52.350 células. O ar parte do repouso, e o rotor é acelerado pelo torque aerodinâmico desde 0 RPM. A entrada tem 7,09 m/s.
 
-O ensaio usa os parâmetros do piloto de 0,5 s no OpenFOAM 2412, com Courant máximo de 1,0, dois ciclos externos, duas correções de pressão e uma correção não ortogonal.
+A configuração de desempenho usa `maxCo: 1.25`, um ciclo externo, duas correções de pressão e uma correção não ortogonal. Foi comparada em pilotos curtos. Confira a AMI e o torque antes de usar o resultado como referência.
 
-```bash
-./run_mpi.sh 6
-```
-
-Para comparar com a bancada, consulte `motion.csv` e `free_torque_balance` no resumo da execução. No equilíbrio, a média de RPM permanece estável e o saldo de torque tende a zero. O `checkMesh` estendido ainda aponta problemas locais de qualidade.
 
 ### Rotação prescrita
 
@@ -56,9 +51,9 @@ Use um caso SimpleFoam concluído, com a mesma hélice, vento e rotação próxi
 
 Para testar a partida livre, configure `motion.prescribed_rpm: null` e `motion.initial_rpm: 0.0`. Se o vento já estiver estabelecido antes de liberar o rotor, use `--initial-case` com um SimpleFoam executado com `rotation.angular_velocity: 0.0`. Para ligar o ventilador com ar e rotor em repouso, use `initial.velocity: [0, 0, 0]` e execute `./run_mpi.sh 6`. Use em `wind.profile` a subida medida do vento, quando disponível.
 
-No prescrito a 132 RPM, 2 s permitem comparar três voltas completas após a primeira volta. No livre, use os 9 s configurados para acompanhar as médias de RPM e de saldo de torque nas últimas voltas.
+No prescrito a 132 RPM, 2 s permitem comparar três voltas completas após a primeira volta. No livre, use os 12 s configurados para acompanhar as médias de RPM e de saldo de torque nas últimas voltas.
 
-Estenda o último ponto de `wind.profile` até `time.endTime`. Para o ensaio de 9 s, use `[[0.0, 7.09], [9.0, 7.09]]`.
+Estenda o último ponto de `wind.profile` até `time.endTime`. Para o ensaio de 12 s, use `[[0.0, 7.09], [12.0, 7.09]]`.
 
 ## Scripts
 
@@ -200,6 +195,16 @@ Para reprocessar uma execução, substitua `<run>` pelo nome da pasta:
 python3 postprocessing/calculate_energy.py --case "runs/<run>"
 python3 postprocessing/plot_results.py --case "runs/<run>"
 ```
+
+Para estimar os valores elétricos na faixa de 120 a 140 RPM com o resistor de 10 Ω, reprocese os resultados da execução:
+
+```bash
+python3 postprocessing/calculate_energy.py --case "runs/<run>" \
+  --bench-voltage-calibration 0.000396 120 140 10
+python3 postprocessing/plot_results.py --case "runs/<run>"
+```
+
+A energia calibrada em joules integra apenas intervalos dentro da faixa de RPM. O torque do solver continua associado ao modelo original.
 
 ## Limites do modelo
 
