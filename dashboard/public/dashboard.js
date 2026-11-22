@@ -13,6 +13,8 @@ let savedRuns = [],
 const chartField = () => getElement('plotField').value;
 const formatValue = (value) =>
   value == null ? '--' : Number(value).toLocaleString('en-US', { maximumFractionDigits: 3 });
+const formatMeasurement = (field, value) =>
+  formatValue(field === 'electrical_power_W' && value != null ? value * 1000 : value);
 const showMessage = (message, error = false) => {
   getElement('message').textContent = message;
   getElement('message').classList.toggle('error', error);
@@ -46,7 +48,7 @@ function updateReadings(row) {
   getElement('rpm').textContent = formatValue(row?.rpm);
   getElement('voltage').textContent = formatValue(row?.load_voltage_V);
   getElement('current').textContent = formatValue(row?.current_A);
-  getElement('power').textContent = formatValue(row?.electrical_power_W);
+  getElement('power').textContent = formatMeasurement('electrical_power_W', row?.electrical_power_W);
   getElement('energy').textContent = formatValue(row?.electrical_energy_J);
   gaugeRange = Math.max(gaugeRange, Math.ceil((row?.rpm || 0) / 100) * 100);
   const max = gaugeRange;
@@ -295,15 +297,15 @@ function drawChart() {
   const average = values.length
     ? values.reduce((sum, value) => sum + value, 0) / values.length
     : null;
-  getElement('chartMin').textContent = formatValue(minimum);
-  getElement('chartMax').textContent = formatValue(maximum);
-  getElement('chartMean').textContent = formatValue(average);
+  getElement('chartMin').textContent = formatMeasurement(field, minimum);
+  getElement('chartMax').textContent = formatMeasurement(field, maximum);
+  getElement('chartMean').textContent = formatMeasurement(field, average);
   getElement('chartLegend').textContent = {
     rpm: 'Rotational speed · RPM',
     rpm_raw: 'Raw rotational speed · RPM',
     load_voltage_V: 'Load voltage · V',
     current_A: 'Current · A',
-    electrical_power_W: 'Electrical power · W',
+    electrical_power_W: 'Electrical power · mW',
   }[field];
   if (!archive)
     getElement('plotDetail').textContent =
@@ -327,7 +329,7 @@ function drawChart() {
     context.lineTo(right, y);
     context.stroke();
     context.fillStyle = theme.getPropertyValue('--chart-text').trim();
-    context.fillText(formatValue(high - ((high - low) * i) / 4), 0, y + 3);
+    context.fillText(formatMeasurement(field, high - ((high - low) * i) / 4), 0, y + 3);
     const time = begin + ((end - begin) * i) / 4;
     const x = left + ((right - left) * i) / 4;
     context.fillText(`${time.toFixed(1)} s`, Math.min(x, right - 43), height - 5);
@@ -373,7 +375,7 @@ function drawChart() {
     context.beginPath();
     context.arc(x, y, 3.5, 0, Math.PI * 2);
     context.fill();
-    tooltip.textContent = `${formatValue(closest[field])} · ${getElement('plotField').selectedOptions[0].textContent}\n${closest.elapsed_s.toFixed(2)} s`;
+    tooltip.textContent = `${formatMeasurement(field, closest[field])} · ${getElement('plotField').selectedOptions[0].textContent}\n${closest.elapsed_s.toFixed(2)} s`;
     tooltip.hidden = false;
     tooltip.style.left = `${Math.max(0, Math.min(x + 12, width - tooltip.offsetWidth - 4))}px`;
     tooltip.style.top = `${Math.max(0, y - 48)}px`;
