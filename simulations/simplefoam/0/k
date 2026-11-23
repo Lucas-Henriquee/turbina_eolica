@@ -13,21 +13,21 @@ internalField   uniform 0.02;
 
 boundaryField
 {
-    inlet
+    fanInlet
     {
-        type            fixedValue;
-        value           uniform 0.02;
+        type fixedValue;
+        value uniform 0.02;
     }
-    outlet
+    "(inlet|outlet|sides)"
     {
-        type            inletOutlet;
-        inletValue      uniform 0.02;
-        value           uniform 0.02;
+        type inletOutlet;
+        inletValue uniform 0.02;
+        value uniform 0.02;
     }
-    sides
+    ground
     {
-        type            kqRWallFunction;
-        value           uniform 0.02;
+        type kqRWallFunction;
+        value uniform 0.02;
     }
     propeller
     {

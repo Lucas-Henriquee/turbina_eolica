@@ -13,6 +13,13 @@ addLayers       {{mesh_layers}};
 // Superfícies e região da entrada.
 geometry
 {
+    fanRefinement
+    {
+        type searchableCylinder;
+        point1 {{fan_point1}};
+        point2 {{fan_point2}};
+        radius {{fan_radius}};
+    }
     propeller
     {
         type triSurfaceMesh;
@@ -61,7 +68,7 @@ castellatedMeshControls
 
         cylinder
         {
-            level ({{mesh_cylinder_level}} {{mesh_cylinder_level}});
+            level ({{mesh_cylinder_surface_level}} {{mesh_cylinder_surface_level}});
 
             faceType    internal;
             faceZone    cylinder;
@@ -73,7 +80,12 @@ castellatedMeshControls
 
     refinementRegions
     {
-        propeller
+    fanRefinement
+        {
+            mode inside;
+            levels ((1E15 {{fan_refinement}}));
+        }
+            propeller
         {
             mode distance;
             levels

@@ -8,11 +8,18 @@ FoamFile
 
 castellatedMesh true;
 snap            true;
-addLayers       false;
+addLayers       true;
 
 // Superfícies e região da entrada.
 geometry
 {
+    fanRefinement
+    {
+        type searchableCylinder;
+        point1 (0 -1.01 0);
+        point2 (0 -0.8 0);
+        radius 0.2;
+    }
     propeller
     {
         type triSurfaceMesh;
@@ -32,15 +39,15 @@ castellatedMeshControls
     maxLocalCells       1000000;
     maxGlobalCells      5000000;
     minRefinementCells  10;
-    nCellsBetweenLevels 3;
+    nCellsBetweenLevels 2;
 
-    locationInMesh (0 -1 0);
+    locationInMesh (0 -0.7 0);
 
     features
     (
         {
             file "propeller_test.eMesh";
-            level 4;
+            level 6;
         }
         {
             file "cylinder.eMesh";
@@ -52,7 +59,7 @@ castellatedMeshControls
     {
         propeller
         {
-            level (4 4);
+            level (6 6);
             patchInfo
             {
                 type wall;
@@ -61,7 +68,7 @@ castellatedMeshControls
 
         cylinder
         {
-            level (1 1);
+            level (2 2);
 
             faceType    internal;
             faceZone    cylinder;
@@ -73,14 +80,19 @@ castellatedMeshControls
 
     refinementRegions
     {
-        propeller
+    fanRefinement
+        {
+            mode inside;
+            levels ((1E15 2));
+        }
+            propeller
         {
             mode distance;
             levels
             (
-                (0.001 5)
-                (0.005 4)
-                (0.015 3)
+                (0.001 6)
+                (0.003 5)
+                (0.008 4)
             );
         }
 
@@ -98,7 +110,7 @@ castellatedMeshControls
 // Ajuste ao STL.
 snapControls
 {
-    nSmoothPatch        3;
+    nSmoothPatch        8;
     tolerance           0.7;
     nSolveIter          30;
     nRelaxIter          5;
@@ -111,21 +123,21 @@ snapControls
 // Camadas próximas à parede.
 addLayersControls
 {
-    relativeSizes true;
+    relativeSizes false;
 
     layers
     {
         propeller
         {
-            nSurfaceLayers 3;
+            nSurfaceLayers 2;
         }
     }
 
-    expansionRatio       1.2;
-    finalLayerThickness  0.3;
-    minThickness         0.1;
+    expansionRatio       1.25;
+    finalLayerThickness  0.0004;
+    minThickness         5e-05;
     nGrow                0;
-    featureAngle         60;
+    featureAngle         80;
     nRelaxIter           3;
     nSmoothSurfaceNormals 1;
     nSmoothNormals       3;
@@ -133,8 +145,8 @@ addLayersControls
     maxFaceThicknessRatio 0.5;
     maxThicknessToMedialRatio 0.3;
     minMedialAxisAngle   90;
-    nBufferCellsNoExtrude 0;
-    nLayerIter           50;
+    nBufferCellsNoExtrude 2;
+    nLayerIter           36;
 }
 
 // Limites de qualidade.

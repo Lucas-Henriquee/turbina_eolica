@@ -13,18 +13,20 @@ internalField   uniform 0;
 
 boundaryField
 {
-    inlet
+    fanInlet
     {
-        type            zeroGradient;
+        type zeroGradient;
     }
-    outlet
+    "(inlet|outlet|sides)"
     {
-        type            fixedValue;
-        value           uniform 0;
+        type totalPressure;
+        p0 uniform 0;
+        value uniform 0;
     }
-    sides
+    ground
     {
-        type            zeroGradient;
+        type fixedFluxPressure;
+        value uniform 0;
     }
     propeller
     {

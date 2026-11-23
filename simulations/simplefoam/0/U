@@ -9,27 +9,28 @@ FoamFile
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (0 3.3 0);
+internalField   uniform (0 0 0);
 
 boundaryField
 {
-    inlet
+    fanInlet
     {
-        type            fixedValue;
-        value           uniform (0 3.3 0);
+        type fixedValue;
+        value uniform (0 6.86 0);
     }
-    outlet
+    "(inlet|outlet|sides)"
     {
-        type            inletOutlet;
-        inletValue      uniform (0 3.3 0);
-        value           uniform (0 3.3 0);
+        type pressureInletOutletVelocity;
+        value uniform (0 0 0);
     }
-    sides
+    ground
     {
-        type            slip;
+        type noSlip;
     }
+    // O MRF aplica a velocidade do rotor.
     propeller
     {
-        type            noSlip;
+        type            fixedValue;
+        value           uniform (0 0 0);
     }
 }

@@ -37,7 +37,8 @@ Edite [config.yaml](config.yaml). Cada parâmetro tem uma descrição curta e su
 | Seção | Conteúdo |
 | --- | --- |
 | `geometry` | Hélice, centro e folgas do cilindro MRF |
-| `fluid` / `initial` | Propriedades do ar e velocidade de entrada |
+| `bench` | Diâmetro e velocidade do ventilador, distância e altura do eixo |
+| `fluid` / `initial` | Propriedades do ar e estado inicial |
 | `turbulence` | Modelo e valores de k e omega |
 | `rotation` | Velocidade angular prescrita |
 | `iterations` | Limite de iterações e gravação de campos |
@@ -46,11 +47,11 @@ Edite [config.yaml](config.yaml). Cada parâmetro tem uma descrição curta e su
 | `output` | Amostragem, médias e gráficos |
 | `parallel` | Decomposição e processos MPI |
 
-A geometria usa a hélice nova `propeller_test.stl`. O cilindro é gerado pelas folgas, e raio, diâmetro e área varrida são calculados do STL. O refinamento inclui nível 5 próximo à hélice.
+A geometria usa `propeller_test.stl`. O cilindro é gerado pelas folgas, e raio, diâmetro e área varrida são calculados do STL. A malha usa nível 6 na hélice, nível 2 na superfície do cilindro e até duas camadas junto às pás.
 
-Os valores iniciais de entrada (`3,3 m/s`) e rotação (`−25,5 rad/s`) vêm do caso estacionário anterior. Ajuste-os para o ensaio desejado. Densidade do PETG e inércia não entram neste modelo: a velocidade do rotor é imposta.
+A malha de referência tem 51.830 células no OpenFOAM 2512, com a hélice na posição do STL. A entrada circular de 40 cm fica a 1 m do rotor, com eixo a 40 cm do chão. O caso usa 6,86 m/s na entrada, valor obtido na calibração da bancada do PimpleFoam para cerca de 6,20 m/s no centro sem a hélice.
 
-A entrada é uniforme em +Y; as condições externas preservam o caso anterior. O domínio não representa o disco do ventilador nem o chão da bancada. Esta aproximação precisa ser avaliada antes da comparação experimental.
+O MRF calcula o torque a −132 RPM com as pás em uma posição fixa. O caso serve para estudar a faixa de equilíbrio e a sensibilidade do torque à malha e à posição das pás.
 
 Para preparar sem gerar a malha:
 
@@ -84,6 +85,7 @@ Execuções concluídas ficam em `runs/testNNN_<data>/`; falhas e interrupções
 | `config.txt` | Relatório e entradas OpenFOAM |
 | `logs/log.simpleFoam` | Resíduos, iterações e convergência |
 | `logs/log.checkMesh` | Qualidade da malha |
+| `postProcessing/yPlusRotor/` | Mínimo, máximo e média de y+ por parede |
 | `logs/log.analyze_results` / `logs/log.plot_results` | Análise e gráficos |
 | `<run>.foam` | Campos e malha para ParaView |
 
@@ -102,6 +104,10 @@ python3 scripts/show_results.py
 ## Análise estacionária
 
 A potência aerodinâmica usa `torque_y × omega_y`, preservando o sinal. As médias usam a fração final das amostras definida por `output.average_start_fraction`; TSR usa a magnitude da rotação. Não se integra energia usando o contador de iterações.
+
+Para comparar com o PimpleFoam prescrito, use `mean_aero_drive_torque_N_m` no resumo. As parcelas de pressão e viscosidade também são projetadas no sentido da rotação. Use o resultado para comparação depois de conferir os resíduos e o torque no final da execução.
+
+Em testes de malha, compare o torque de pressão, o torque viscoso e o `yPlusRotor`. Ao usar camadas, confira também quantas foram realmente geradas em `log.snappyHexMesh`. O número de células e o resultado de `checkMesh` são checagens geométricas.
 
 Concluir o fluxo não significa convergir: consulte `converged` no resumo e os resíduos. Mesmo a convergência numérica não comprova independência de malha ou acordo experimental.
 

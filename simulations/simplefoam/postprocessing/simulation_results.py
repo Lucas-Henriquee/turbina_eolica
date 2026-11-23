@@ -11,8 +11,8 @@ ROOT = Path(__file__).resolve().parents[1]
 NUMBER = r"[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?"
 
 
-def read_forces(path):
-    """2512: total/pressure/viscous. Formato antigo: pressure/viscous/porous."""
+def read_forces(path, components=False):
+    """Lê o total e, se solicitado, as parcelas de pressão e viscosidade."""
     header = []
     rows = []
     for line in path.read_text().splitlines():
@@ -29,24 +29,28 @@ def read_forces(path):
         raise ValueError(f"No data: {path}")
     description = " ".join(header)
     data = np.array(rows)
-    if "total" in description:
-        total = data[:, 1:4]
-    elif "pressure" in description and "viscous" in description:
-        total = data[:, 1:].reshape(len(data), -1, 3).sum(axis=1)
-    else:
+    groups = data[:, 1:].reshape(len(data), -1, 3)
+    has_total = "total" in description
+    if not has_total and not ("pressure" in description and "viscous" in description):
         raise ValueError(
             f"Unknown force header: {path}; total torque cannot be inferred."
         )
+    total = groups[:, 0] if has_total else groups.sum(axis=1)
+    if components:
+        offset = int(has_total)
+        if groups.shape[1] < offset + 2:
+            raise ValueError(f"Pressure and viscous components missing: {path}")
+        return np.column_stack([data[:, 0], total, groups[:, offset], groups[:, offset + 1]])
     return np.column_stack([data[:, 0], total])
 
 
-def read_force_series(case, name):
+def read_force_series(case, name, components=False):
     files = list((case / "postProcessing/forcesRotor").glob("*/" + name))
     if not files:
         raise ValueError(f"{name} missing from {case}/postProcessing/forcesRotor")
     values = {}
     for file in sorted(files, key=lambda p: float(p.parent.name)):
-        for row in read_forces(file):
+        for row in read_forces(file, components):
             values[row[0]] = row
     return np.array([values[times] for times in sorted(values)])
 
@@ -67,7 +71,7 @@ def analyze(case):
     case = Path(case).resolve()
     resolved = json.loads((case / "metadata/resolved_config.json").read_text())
     config, geometry = resolved["config"], resolved["body"]
-    moments = read_force_series(case, "moment.dat")
+    moments = read_force_series(case, "moment.dat", components=True)
     forces = read_force_series(case, "force.dat")
     iterations = moments[:, 0]
     if len(iterations) < 2 or np.any(np.diff(iterations) <= 0):
@@ -75,7 +79,9 @@ def analyze(case):
     axial_force = interpolate_series(iterations, forces)[:, 1]
     torque = moments[:, 2]
     angular_velocity = config["rotation"]["angular_velocity"]
-    speed = float(np.linalg.norm(config["initial"]["velocity"]))
+    direction = math.copysign(1, angular_velocity) if angular_velocity else None
+    bench = config.get("bench")
+    speed = bench["fan_speed"] if bench else float(np.linalg.norm(config["initial"]["velocity"]))
     available_power = (
         0.5 * config["fluid"]["density"] * geometry["swept_area"] * speed**3
     )
@@ -153,9 +159,14 @@ def analyze(case):
             "TSR uses the magnitude of prescribed rotation.",
             "No energy integral is computed from steady iteration indices.",
             "Reported averages use the configured trailing sample fraction.",
+            "Drive torque is projected along the imposed rotation direction.",
             "Solver convergence does not establish mesh independence or experimental agreement.",
         ],
     }
+    for part, column in [("aero", 2), ("pressure", 5), ("viscous", 8)]:
+        summary[f"mean_{part}_drive_torque_N_m"] = (
+            None if direction is None else float(np.mean(moments[selected, column]) * direction)
+        )
     return data, columns, summary
 
 

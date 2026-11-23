@@ -13,21 +13,21 @@ internalField   uniform {{turbulence_k}};
 
 boundaryField
 {
-    inlet
+    fanInlet
     {
-        type            fixedValue;
-        value           uniform {{turbulence_k}};
+        type fixedValue;
+        value uniform {{turbulence_k}};
     }
-    outlet
+    "(inlet|outlet|sides)"
     {
-        type            inletOutlet;
-        inletValue      uniform {{turbulence_k}};
-        value           uniform {{turbulence_k}};
+        type inletOutlet;
+        inletValue uniform {{turbulence_k}};
+        value uniform {{turbulence_k}};
     }
-    sides
+    ground
     {
-        type            kqRWallFunction;
-        value           uniform {{turbulence_k}};
+        type kqRWallFunction;
+        value uniform {{turbulence_k}};
     }
     propeller
     {

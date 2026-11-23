@@ -29,7 +29,7 @@ divSchemes
 
 laplacianSchemes
 {
-    default {{schemes_laplacian}};
+    default {{schemes_laplacian}};{{omega_laplacian_entry}}
 }
 
 interpolationSchemes

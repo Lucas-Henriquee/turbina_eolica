@@ -13,25 +13,27 @@ internalField   uniform {{turbulence_omega}};
 
 boundaryField
 {
-    inlet
+    fanInlet
     {
-        type            fixedValue;
-        value           uniform {{turbulence_omega}};
+        type fixedValue;
+        value uniform {{turbulence_omega}};
     }
-    outlet
+    "(inlet|outlet|sides)"
     {
-        type            inletOutlet;
-        inletValue      uniform {{turbulence_omega}};
-        value           uniform {{turbulence_omega}};
+        type inletOutlet;
+        inletValue uniform {{turbulence_omega}};
+        value uniform {{turbulence_omega}};
     }
-    sides
+    ground
     {
-        type            omegaWallFunction;
-        value           uniform {{turbulence_omega}};
+        type omegaWallFunction;
+        value uniform {{turbulence_omega}};
     }
     propeller
     {
         type            omegaWallFunction;
+        blending        binomial;
+        n               2;
         value           uniform {{turbulence_omega}};
     }
 }
