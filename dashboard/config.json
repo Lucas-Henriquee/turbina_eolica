@@ -6,7 +6,7 @@
   "output_directory": "data",
   "load_resistance_ohm": 10.0,
   "rotor_name": "manual_profile",
-  "material": "ABS",
+  "material": "PETG",
   "wind_speed_m_s": 6.0,
   "wind_speed_source": "manual",
   "fan_distance_m": null,

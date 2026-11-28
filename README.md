@@ -13,10 +13,10 @@ Estudo de uma turbina eólica de bancada com simulações transientes e estacion
 
 | Pasta | Conteúdo |
 | --- | --- |
-| [simulations/pimplefoam](simulations/pimplefoam/README.md) | Simulação transiente com rotação livre |
+| [simulations/pimplefoam](simulations/pimplefoam/README.md) | Simulações transientes com rotação livre ou prescrita |
 | [simulations/simplefoam](simulations/simplefoam/README.md) | Simulação estacionária com rotação prescrita — MRF |
 | [dashboard](dashboard/README.md) | Gráficos, aquisição USB, histórico e exportação CSV |
-| [firmware](firmware/README.md) | ESP32, INA219, sensor Hall e LED de gravação |
+| [firmware](firmware/README.md) | ESP32, INA219, sensor Hall e LED de status e gravação |
 | [docs](docs/README.md) | Animação da hélice e script de geração |
 | [archive](archive/README.md) | Arquivos do trabalho anterior |
 
@@ -98,7 +98,9 @@ source /usr/lib/openfoam/openfoam2512/etc/bashrc
 
 Para o caso estacionário, use `simulations/simplefoam/`. Edite o `config.yaml` do caso antes de executar. Cada caso preserva seu histórico em `runs/`; os detalhes das etapas ficam nos logs.
 
-A simulação calcula potência aerodinâmica; a bancada mede potência elétrica. A integração automática entre as duas frentes ainda não foi implementada.
+No transiente, `motion.prescribed_rpm: null` calcula a rotação livre, enquanto um valor diferente de zero impõe a rotação em RPM com sinal no eixo Y. A configuração atual começa do repouso e usa 1 s como teste inicial; ajuste a duração e o perfil de vento para o ensaio desejado. No estacionário, a rotação é imposta por `rotation.angular_velocity`, em rad/s, e a malha permanece fixa.
+
+A simulação calcula potência aerodinâmica e, com o modelo de gerador habilitado, estima a potência elétrica na carga. A bancada mede tensão e corrente para calcular a potência elétrica. O pós-processamento também aceita um ajuste elétrico com dados da bancada, separado do balanço usado pelo solver. A comparação automática entre os ensaios e as simulações ainda não foi implementada.
 
 ## Compatibilidade
 

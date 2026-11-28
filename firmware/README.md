@@ -1,6 +1,6 @@
 # ESP32 firmware
 
-Aquisição do INA219 e do Hall, transmissão USB e controle do LED de gravação.
+Aquisição do INA219 e do Hall, transmissão USB e controle do LED de status e gravação.
 
 ## Compilar e gravar
 
@@ -36,7 +36,7 @@ Parâmetros em [include/hardware_config.h](include/hardware_config.h).
 | Hall, após conversor de nível | 27 |
 | INA219 SDA | 21 |
 | INA219 SCL | 22 |
-| LED de gravação | 2 |
+| LED de status e gravação | 2 |
 
 O INA219 usa endereço `0x40` e shunt de `0,1 Ω`. As flags dos sensores estão habilitadas. Confira a montagem antes de gravar; o sinal do Hall deve ser compatível com 3,3 V. A configuração atual usa um pulso por volta.
 
@@ -58,7 +58,19 @@ g++ -std=c++11 -Wall -Wextra -Werror -Ifirmware/include firmware/tests/hall_puls
 node --test dashboard/tests/measurements.test.js
 ```
 
-O LED azul acende durante gravação USB e apaga ao parar ou após 3 segundos sem comandos de controle. O LED de alimentação é independente.
+## Sinais do LED
+
+O LED azul do GPIO 2 indica os seguintes estados:
+
+| Sinal | Significado |
+| --- | --- |
+| Duas piscadas ao iniciar | O ESP32 terminou a inicialização; isso não confirma que os sensores estão funcionando |
+| Piscada curta fora da gravação | Foi observado um novo pulso aceito do Hall |
+| Aceso continuamente | Gravação USB ativa |
+| Apaga ao parar | A dashboard enviou `RECORD_STOP` |
+| Três piscadas após perder os comandos por 3 s | O controle da gravação expirou |
+
+As piscadas duram 80 ms, com 200 ms entre os inícios de cada piscada. O aviso do Hall é atualizado junto com a amostragem e não é um contador visual de todas as passagens do ímã. Durante a gravação, o LED permanece aceso. Após o aviso de perda dos comandos, ele volta a indicar os pulsos do Hall. O LED de alimentação é independente.
 
 Para buscar dispositivos I²C, envie `SCAN_I2C` seguido de LF, com a gravação parada. O INA219 deve responder com `I2C found 0x40`.
 
