@@ -9,6 +9,7 @@ def validate_controls(config, templates):
     config["motion"].setdefault("ami_min_cos_angle", -1.0)
     config["motion"].setdefault("ami_max_normal_distance", None)
     config["motion"].setdefault("prescribed_rpm", None)
+    config["motion"].setdefault("initial_rpm", 0.0)
     for key in ["mass_correction_kg", "shaft_inertia_correction_kg_m2"]:
         config["geometry"].setdefault(key, 0.0)
     def finite(value, name, lower=None, integer=False):
@@ -76,6 +77,7 @@ def validate_controls(config, templates):
             "acceleration_damping",
             "shaft_damping",
             "prescribed_rpm",
+            "initial_rpm",
             "integration",
         ],
         "time": [
@@ -140,8 +142,26 @@ def validate_controls(config, templates):
             "load_resistance_ohm", "shunt_resistance_ohm",
         ]
     keys(config, schema, "config")
+    mesh = config["mesh"]
+    if isinstance(mesh, dict) and "cylinder_surface_level" in mesh:
+        schema["mesh"].append("cylinder_surface_level")
+        finite(mesh["cylinder_surface_level"], "mesh.cylinder_surface_level", 0, True)
+    if isinstance(mesh, dict) and "y_grading" in mesh:
+        schema["mesh"].append("y_grading")
     for section, allowed in schema.items():
         keys(config[section], allowed, section)
+    if "y_grading" in mesh:
+        sections = mesh["y_grading"]
+        if not isinstance(sections, list) or not sections:
+            raise ValueError("mesh.y_grading requires at least one section.")
+        for row in sections:
+            if not isinstance(row, list) or len(row) != 3:
+                raise ValueError("mesh.y_grading entries require [length, cells, expansion].")
+            finite(row[0], "mesh.y_grading length", 1e-12)
+            finite(row[1], "mesh.y_grading cells", 1, True)
+            finite(row[2], "mesh.y_grading expansion", 1e-12)
+        if sum(row[1] for row in sections) != mesh["cells"][1]:
+            raise ValueError("mesh.y_grading cells must sum to mesh.cells[1].")
     if "generator" in config:
         if not isinstance(config["generator"]["enabled"], bool):
             raise ValueError("generator.enabled must be true or false.")
@@ -192,7 +212,11 @@ def validate_controls(config, templates):
         finite(config["geometry"][key], "geometry." + key)
     finite(config["motion"]["shaft_damping"], "motion.shaft_damping", 0)
     prescribed_rpm = config["motion"]["prescribed_rpm"]
+    initial_rpm = finite(config["motion"]["initial_rpm"], "motion.initial_rpm")
+    config["motion"]["initial_rpm"] = initial_rpm
     if prescribed_rpm is not None:
+        if initial_rpm != 0:
+            raise ValueError("motion.initial_rpm is only used with free rotation.")
         rpm = finite(prescribed_rpm, "motion.prescribed_rpm")
         if rpm == 0:
             raise ValueError("motion.prescribed_rpm must be nonzero or null.")

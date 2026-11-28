@@ -32,11 +32,20 @@ functions
         dragDir         (0 1 0);
         pitchAxis       (0 1 0);
         // Referência nominal dos coeficientes.
-        magUInf         3.3;
-        lRef            0.452314288364;
+        magUInf         6.86;
+        lRef            0.226157144182;
         Aref            0.160683208674;
 
         writeControl    timeStep;
         writeInterval   10;
+    }
+
+    yPlusRotor
+    {
+        type            yPlus;
+        libs            (fieldFunctionObjects);
+        useWallFunction true;
+        writeFields     false;
+        writeControl    writeTime;
     }
 }

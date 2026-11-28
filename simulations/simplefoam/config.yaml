@@ -4,16 +4,24 @@ geometry:                                      # Geometria da região MRF.
   cylinder_stl: cylinder.stl                    # Superfície da zona rotativa.
   cylinder_mode: auto                          # auto gera o cilindro; existing usa o STL.
   rotation_centre: [0, 0, 0]                    # m; origem da rotação prescrita.
-  cylinder_radial_clearance: 0.06               # m; folga radial até o cilindro.
-  cylinder_axial_clearance: 0.15                # m; folga em cada extremo do eixo Y.
+  cylinder_radial_clearance: 0.07               # m; folga radial até o cilindro.
+  cylinder_axial_clearance: 0.17                # m; folga em cada extremo do eixo Y.
   cylinder_segments: 128                       # Divisões da circunferência.
+
+bench:                                        # Dimensões da bancada.
+  fan_diameter: 0.40                          # m; diâmetro da entrada circular.
+  fan_distance: 1.0                           # m; distância da entrada ao rotor.
+  axis_height: 0.40                           # m; altura do eixo acima do chão.
+  fan_speed: 6.86                              # m/s na grade; referência de 6,20 m/s a 1 m.
+  fan_refinement: 2                           # Nível de refinamento na entrada.
+  fan_refinement_depth: 0.20                   # m; extensão após a entrada.
 
 fluid:                                        # Propriedades do ar.
   density: 1.225                               # kg/m³; densidade.
   nu: 1.5e-5                                   # m²/s; viscosidade cinemática.
 
 initial:                                      # Condições do escoamento.
-  velocity: [0, 3.3, 0]                        # m/s; velocidade inicial e de entrada.
+  velocity: [0, 0, 0]                          # m/s; condição inicial.
   pressure: 0.0                                # m²/s²; pressão cinemática inicial.
 
 turbulence:                                   # Turbulência na entrada.
@@ -22,7 +30,7 @@ turbulence:                                   # Turbulência na entrada.
   omega: 15.0                                  # 1/s; dissipação específica.
 
 rotation:                                     # Rotação fixa em uma malha parada.
-  angular_velocity: -25.5                      # rad/s; sinal em relação ao eixo Y.
+  angular_velocity: -13.8230076758            # rad/s; −132 RPM no eixo Y.
 
 iterations:                                   # Contador numérico, não tempo físico.
   limit: 5000                                  # Máximo de iterações SIMPLE.
@@ -41,29 +49,31 @@ output:                                       # Registro e análise estacionári
 
 parallel:                                     # Execução MPI.
   processes: 6                                 # run_mpi.sh N tem prioridade.
-  method: scotch                               # scotch, simple ou hierarchical.
-  divisions: [3, 2, 1]                         # Partições [X, Y, Z]; simple/hierarchical.
+  method: simple                               # scotch, simple ou hierarchical.
+  divisions: [2, 3, 1]                         # Partições [X, Y, Z]; simple/hierarchical.
   order: xyz                                   # Ordem; apenas hierarchical.
   mpi_test_timeout: 15                        # s; prazo do teste de inicialização MPI.
 
 mesh:        # Domínio e refinamento.
-  bounds: [[-1.1, -2.2, -1.1], [1.1, 4.4, 1.1]]  # m; limites [mínimo XYZ, máximo XYZ].
-  cells: [22, 66, 22]                         # Células-base em [X, Y, Z].
-  location_in_mesh: [0, -1.0, 0]              # m; ponto no fluido externo a preservar.
+  bounds: [[-1.1, -1.0, -0.40], [1.1, 4.4, 1.1]] # m; limites [mínimo XYZ, máximo XYZ].
+  cells: [10, 28, 18]                          # Células-base em [X, Y, Z].
+  y_grading: [[1.8, 18, 1], [3.6, 10, 5.5]]   # Comprimento, células e expansão em Y.
+  location_in_mesh: [0, -0.7, 0]               # m; ponto no fluido externo a preservar.
   maxLocalCells: 1000000                      # Limite de células por processo no refinamento.
   maxGlobalCells: 5000000                     # Limite total de células no refinamento.
-  rotor_level: 4                              # Nível na superfície e nas arestas da hélice.
-  cylinder_level: 1                           # Nível na região cilíndrica e sua superfície.
-  distance_levels: [[0.001, 5], [0.005, 4], [0.015, 3]]  # Pares [distância à hélice em m, nível].
-  add_layers: false                           # Ativa camadas de células junto à hélice.
-  surface_layers: 3                           # Número de camadas; usado com add_layers: true.
+  rotor_level: 6                              # Nível na superfície e nas arestas da hélice.
+  cylinder_level: 1                           # Refinamento interno do cilindro.
+  cylinder_surface_level: 2                   # Refinamento da superfície cilíndrica.
+  distance_levels: [[0.001, 6], [0.003, 5], [0.008, 4]]  # Pares [distância à hélice em m, nível].
+  add_layers: true                           # Ativa camadas de células junto à hélice.
+  surface_layers: 2                           # Número de camadas; usado com add_layers: true.
   castellated_controls:                       # Refinamento antes do ajuste à superfície.
     minRefinementCells: 10            # Mínimo de células marcadas para continuar.
-    nCellsBetweenLevels: 3            # Células de transição entre níveis.
+    nCellsBetweenLevels: 2            # Células de transição entre níveis.
     resolveFeatureAngle: 30           # Graus; ângulo para refinar arestas.
     allowFreeStandingZoneFaces: true  # Permite faces de zona fora das superfícies.
   snap_controls:                              # Ajuste da malha ao STL.
-    nSmoothPatch: 3                # Suavizações da superfície antes do ajuste.
+    nSmoothPatch: 5                # Suavizações da superfície antes do ajuste.
     tolerance: 0.7                 # Distância de atração relativa à aresta local.
     nSolveIter: 30                 # Iterações para suavizar deslocamentos.
     nRelaxIter: 5                  # Iterações de relaxação do ajuste.
@@ -72,12 +82,12 @@ mesh:        # Domínio e refinamento.
     explicitFeatureSnap: true      # Usa as arestas extraídas no arquivo .eMesh.
     multiRegionFeatureSnap: false  # Reconhece arestas entre regiões.
   layer_controls:                             # Usado apenas com add_layers: true.
-    relativeSizes: true             # Espessuras relativas ao tamanho da célula.
-    expansionRatio: 1.2             # Crescimento da espessura entre camadas.
-    finalLayerThickness: 0.3        # Espessura da camada mais distante da parede.
-    minThickness: 0.1               # Espessura mínima do conjunto de camadas.
+    relativeSizes: false             # Espessuras relativas ao tamanho da célula.
+    expansionRatio: 1.25             # Crescimento da espessura entre camadas.
+    finalLayerThickness: 0.0004    # m; espessura da camada externa.
+    minThickness: 0.00005           # m; espessura mínima do conjunto.
     nGrow: 0                        # Faixas sem camadas ao redor de falhas.
-    featureAngle: 60                # Graus; ângulo limite para adicionar camadas.
+    featureAngle: 80                # Graus; ângulo limite para adicionar camadas.
     nRelaxIter: 3                   # Iterações de relaxação da extrusão.
     nSmoothSurfaceNormals: 1        # Suavizações das normais na superfície.
     nSmoothNormals: 3               # Suavizações das normais no volume.
@@ -85,8 +95,8 @@ mesh:        # Domínio e refinamento.
     maxFaceThicknessRatio: 0.5      # Limite espessura/tamanho da face.
     maxThicknessToMedialRatio: 0.3  # Limite espessura/distância ao eixo medial.
     minMedialAxisAngle: 90          # Graus; ângulo para identificar o eixo medial.
-    nBufferCellsNoExtrude: 0        # Células de transição no fim das camadas.
-    nLayerIter: 50                  # Limite de iterações para gerar camadas.
+    nBufferCellsNoExtrude: 1        # Células de transição no fim das camadas.
+    nLayerIter: 36                  # Limite de iterações para gerar camadas.
   quality_controls:                           # Limites de qualidade da malha.
     maxNonOrtho: 65          # Graus; não ortogonalidade máxima.
     maxBoundarySkewness: 20  # Distorção máxima nas faces de contorno.
@@ -116,8 +126,8 @@ numerics:                                    # Acoplamento SIMPLE.
     p:      # Pressão cinemática.
       solver: GAMG           # Algoritmo de solução do sistema linear.
       smoother: GaussSeidel  # Método de suavização dos resíduos.
-      tolerance: 1.0e-06     # Resíduo absoluto para encerrar o solver.
-      relTol: 0.1            # Resíduo relativo para encerrar o solver.
+      tolerance: 1.0e-08     # Resíduo absoluto para encerrar o solver.
+      relTol: 0.01            # Resíduo relativo para encerrar o solver.
       final_relTol: 0        # relTol final; 0 exige o critério absoluto.
     pcorr:  # Pressão auxiliar para corrigir o fluxo.
       solver: GAMG           # Algoritmo de solução do sistema linear.
@@ -128,36 +138,37 @@ numerics:                                    # Acoplamento SIMPLE.
     U:      # Velocidade do ar.
       solver: smoothSolver      # Algoritmo de solução do sistema linear.
       smoother: symGaussSeidel  # Método de suavização dos resíduos.
-      tolerance: 1.0e-06        # Resíduo absoluto para encerrar o solver.
-      relTol: 0.1               # Resíduo relativo para encerrar o solver.
+      tolerance: 1.0e-08        # Resíduo absoluto para encerrar o solver.
+      relTol: 0.01               # Resíduo relativo para encerrar o solver.
       final_relTol: 0           # relTol final; 0 exige o critério absoluto.
     k:      # Energia cinética turbulenta.
       solver: smoothSolver      # Algoritmo de solução do sistema linear.
       smoother: symGaussSeidel  # Método de suavização dos resíduos.
-      tolerance: 1.0e-06        # Resíduo absoluto para encerrar o solver.
-      relTol: 0.1               # Resíduo relativo para encerrar o solver.
+      tolerance: 1.0e-08        # Resíduo absoluto para encerrar o solver.
+      relTol: 0.01               # Resíduo relativo para encerrar o solver.
       final_relTol: 0           # relTol final; 0 exige o critério absoluto.
     omega:  # Dissipação turbulenta específica.
       solver: smoothSolver      # Algoritmo de solução do sistema linear.
       smoother: symGaussSeidel  # Método de suavização dos resíduos.
-      tolerance: 1.0e-06        # Resíduo absoluto para encerrar o solver.
-      relTol: 0.1               # Resíduo relativo para encerrar o solver.
+      tolerance: 1.0e-08        # Resíduo absoluto para encerrar o solver.
+      relTol: 0.01               # Resíduo relativo para encerrar o solver.
       final_relTol: 0           # relTol final; 0 exige o critério absoluto.
   relaxation:                  # Fatores de relaxação numérica.
     p: 0.2      # Relaxação do campo de pressão.
-    U: 0.5      # Relaxação da equação de velocidade.
-    k: 0.5      # Relaxação da equação de k.
-    omega: 0.5  # Relaxação da equação de omega.
+    U: 0.3      # Relaxação da equação de velocidade.
+    k: 0.3      # Relaxação da equação de k.
+    omega: 0.3  # Relaxação da equação de omega.
 
 schemes:     # Discretização das equações.
   time: steadyState                                 # Caso estacionário; sem tempo físico.
   gradient: Gauss linear                      # Gradientes dos campos.
   velocity_gradient: cellLimited Gauss linear 1  # Gradiente de velocidade com limitador.
   velocity_divergence: bounded Gauss linearUpwind grad(U)  # Transporte convectivo da velocidade.
-  k_divergence: bounded Gauss linearUpwind default  # Transporte convectivo de k.
-  omega_divergence: bounded Gauss linearUpwind default  # Transporte convectivo de omega.
+  k_divergence: bounded Gauss upwind            # Transporte convectivo de k.
+  omega_divergence: bounded Gauss upwind        # Transporte convectivo de omega.
   viscous_divergence: Gauss linear            # Termo de tensões viscosas.
   laplacian: Gauss linear corrected           # Termos difusivos e correção geométrica.
+  omega_laplacian: Gauss linear limited 0.5   # Limita a correção não ortogonal em omega.
   interpolation: linear                       # Interpolação dos centros para as faces.
   normal_gradient: corrected                  # Gradiente normal às faces.
   wall_distance: meshWave                     # Método de cálculo da distância à parede.

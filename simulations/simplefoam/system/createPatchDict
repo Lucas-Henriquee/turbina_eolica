@@ -1,0 +1,21 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object createPatchDict;
+}
+pointSync false;
+// Cria a entrada circular do ventilador.
+patches
+(
+    {
+        name fanInlet;
+        patchInfo
+        {
+            type patch;
+        }
+        constructFrom set;
+        set fanFaces;
+    }
+);

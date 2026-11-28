@@ -8,7 +8,7 @@ geometry:    # Geometria e material.
   cylinder_stl: cylinder.stl       # STL da região de malha rotativa.
   cylinder_mode: auto              # auto gera o cilindro; existing usa o STL.
   cylinder_radial_clearance: 0.07  # m; folga entre ponta da pá e cilindro.
-  cylinder_axial_clearance: 0.15   # m; folga em cada extremidade do eixo Y.
+  cylinder_axial_clearance: 0.17   # m; folga em cada extremidade do eixo Y.
   cylinder_segments: 128           # Divisões da circunferência do cilindro.
 
 bench:       # Dimensões da bancada.
@@ -33,15 +33,16 @@ turbulence:  # Turbulência na entrada.
 
 wind:        # Velocidade prescrita na entrada.
   profile:              # Pares [tempo em s, velocidade em m/s].
-    - [0.0, 6.0]
-    - [25.0, 6.0]
-  reference_speed: 6.0  # m/s; referência dos coeficientes nativos.
+    - [0.0, 6.86]
+    - [1.0, 6.86]
+  reference_speed: 6.86  # m/s na grade; referência dos coeficientes nativos.
 
 motion:      # Movimento do rotor e da malha.
-  prescribed_rpm: -115.0         # RPM com sinal no eixo Y; null: rotação livre.
+  prescribed_rpm: null         # RPM com sinal no eixo Y; null: rotação livre.
+  initial_rpm: 0.0               # RPM inicial no modo livre.
   ami_low_weight_correction: 0.1  # Soma mínima dos pesos de interpolação AMI.
-  ami_min_cos_angle: 0.5          # Cosseno mínimo após inverter a normal do lado oposto.
-  ami_max_normal_distance: 0.01   # m; distância normal máxima entre faces candidatas.
+  ami_min_cos_angle: 0.3          # Cosseno mínimo após inverter a normal do lado oposto.
+  ami_max_normal_distance: 0.02   # m; distância normal máxima entre faces candidatas.
   inner_distance: null            # m; distância à hélice com malha rígida; null: auto.
   outer_distance: null            # m; fim do movimento; null: inner_distance + 0,10.
   gravity: [0, 0, 0]              # m/s²; gravidade [X, Y, Z].
@@ -68,11 +69,11 @@ generator:   # Referência aproximada; não é a ficha do RS-775SF instalado.
   shunt_resistance_ohm: 0.1     # Ω; shunt do INA219 em série.
 
 time:        # Tempo e gravação dos campos.
-  endTime: 4.0            # s; duração inicial do diagnóstico.
+  endTime: 1.0            # s; teste de partida no laboratório.
   deltaT: 0.0002           # s; passo de tempo inicial.
   maxDeltaT: 0.0002        # s; maior passo de tempo permitido.
   maxCo: 0.5               # Número de Courant máximo desejado.
-  writeInterval: 0.2       # s; intervalo dos campos para ParaView.
+  writeInterval: 0.1       # s; intervalo dos campos para ParaView.
   writePrecision: 10       # Algarismos dos campos em formato ASCII.
   adjustTimeStep: true     # Ajusta o passo pelo limite de Courant.
   writeFormat: binary      # Formato dos campos: binary ou ascii.
@@ -86,30 +87,32 @@ output:      # Amostragem e análise.
   plots: true          # Gera gráficos após a simulação.
 
 parallel:    # Execução com MPI.
-  method: scotch        # Divisão da malha: scotch, simple ou hierarchical.
-  divisions: [3, 2, 1]  # Partições [X, Y, Z]; simple/hierarchical.
+  method: simple        # Divisão da malha: scotch, simple ou hierarchical.
+  divisions: [2, 3, 1]  # Partições [X, Y, Z]; simple/hierarchical.
   order: xyz            # Ordem de divisão; apenas hierarchical.
   mpi_test_timeout: 15  # s; tempo máximo do teste de inicialização MPI.
   processes: 6          # Processos MPI; run_mpi.sh N tem prioridade.
 
 mesh:        # Domínio e refinamento.
   bounds: [[-1.1, -1.0, -0.40], [1.1, 4.4, 1.1]]  # m; limites [mínimo XYZ, máximo XYZ].
-  cells: [22, 54, 15]                         # Células-base em [X, Y, Z].
+  cells: [10, 28, 18]                         # Células-base em [X, Y, Z].
+  y_grading: [[1.8, 18, 1], [3.6, 10, 5.5]]   # [Comprimento relativo, células, expansão em Y].
   location_in_mesh: [0, -0.7, 0]              # m; ponto no fluido externo a preservar.
   maxLocalCells: 1000000                      # Limite de células por processo no refinamento.
   maxGlobalCells: 5000000                     # Limite total de células no refinamento.
-  rotor_level: 4                              # Nível na superfície e nas arestas da hélice.
-  cylinder_level: 1                           # Nível na região cilíndrica e sua superfície.
-  distance_levels: [[0.001, 5], [0.005, 4], [0.015, 3]]  # Pares [distância à hélice em m, nível].
-  add_layers: false                           # Ativa camadas de células junto à hélice.
-  surface_layers: 3                           # Número de camadas; usado com add_layers: true.
+  rotor_level: 6                              # Nível na superfície e nas arestas da hélice.
+  cylinder_level: 1                           # Refinamento no interior do cilindro.
+  cylinder_surface_level: 2                   # Refinamento na superfície da AMI.
+  distance_levels: [[0.001, 6], [0.003, 5], [0.008, 4]]  # Pares [distância à hélice em m, nível].
+  add_layers: true                           # Ativa camadas de células junto à hélice.
+  surface_layers: 2                           # Número de camadas; usado com add_layers: true.
   castellated_controls:                       # Refinamento antes do ajuste à superfície.
     minRefinementCells: 10            # Mínimo de células marcadas para continuar.
-    nCellsBetweenLevels: 3            # Células de transição entre níveis.
+    nCellsBetweenLevels: 2            # Células de transição entre níveis.
     resolveFeatureAngle: 30           # Graus; ângulo para refinar arestas.
     allowFreeStandingZoneFaces: true  # Permite faces de zona fora das superfícies.
   snap_controls:                              # Ajuste da malha ao STL.
-    nSmoothPatch: 3                # Suavizações da superfície antes do ajuste.
+    nSmoothPatch: 5                # Suavizações da superfície antes do ajuste.
     tolerance: 0.7                 # Distância de atração relativa à aresta local.
     nSolveIter: 30                 # Iterações para suavizar deslocamentos.
     nRelaxIter: 5                  # Iterações de relaxação do ajuste.
@@ -118,12 +121,12 @@ mesh:        # Domínio e refinamento.
     explicitFeatureSnap: true      # Usa as arestas extraídas no arquivo .eMesh.
     multiRegionFeatureSnap: false  # Reconhece arestas entre regiões.
   layer_controls:                             # Usado apenas com add_layers: true.
-    relativeSizes: true             # Espessuras relativas ao tamanho da célula.
-    expansionRatio: 1.2             # Crescimento da espessura entre camadas.
-    finalLayerThickness: 0.3        # Espessura da camada mais distante da parede.
-    minThickness: 0.1               # Espessura mínima do conjunto de camadas.
+    relativeSizes: false             # Espessuras relativas ao tamanho da célula.
+    expansionRatio: 1.25             # Crescimento da espessura entre camadas.
+    finalLayerThickness: 0.0004    # m; espessura da camada externa.
+    minThickness: 0.00005           # m; espessura mínima do conjunto.
     nGrow: 0                        # Faixas sem camadas ao redor de falhas.
-    featureAngle: 60                # Graus; ângulo limite para adicionar camadas.
+    featureAngle: 80                # Graus; ângulo limite para adicionar camadas.
     nRelaxIter: 3                   # Iterações de relaxação da extrusão.
     nSmoothSurfaceNormals: 1        # Suavizações das normais na superfície.
     nSmoothNormals: 3               # Suavizações das normais no volume.
@@ -131,8 +134,8 @@ mesh:        # Domínio e refinamento.
     maxFaceThicknessRatio: 0.5      # Limite espessura/tamanho da face.
     maxThicknessToMedialRatio: 0.3  # Limite espessura/distância ao eixo medial.
     minMedialAxisAngle: 90          # Graus; ângulo para identificar o eixo medial.
-    nBufferCellsNoExtrude: 0        # Células de transição no fim das camadas.
-    nLayerIter: 50                  # Limite de iterações para gerar camadas.
+    nBufferCellsNoExtrude: 1        # Células de transição no fim das camadas.
+    nLayerIter: 36                  # Limite de iterações para gerar camadas.
   quality_controls:                           # Limites de qualidade da malha.
     maxNonOrtho: 65          # Graus; não ortogonalidade máxima.
     maxBoundarySkewness: 20  # Distorção máxima nas faces de contorno.

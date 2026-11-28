@@ -30,13 +30,34 @@ python3 scripts/archive_case.py --status interrupted
 
 `Ctrl+C` interrompe o solver e arquiva os resultados parciais. Não execute dois scripts ao mesmo tempo nesta pasta.
 
-### Diagnóstico a 115 RPM
+### Bancada e modos de rotação
 
-`motion.prescribed_rpm: -115.0` fixa a rotação no sentido observado no caso livre. Vento, geometria e refinamento são os mesmos. Rode `./run_mpi.sh 6` e consulte `prescribed_torque_balance` em `results/summary.json` da execução.
+Os casos padrão compartilham geometria, domínio e refinamento. Uma execução de referência com hélice gerou 52.350 células; confira o número efetivo no `log.checkMesh` de cada nova execução. Na calibração sem hélice, com refinamento cilíndrico e 15.078 células, a entrada de 6,86 m/s produziu 6,199 m/s no centro a 1 m. A sonda `probes` lê a componente Y de `U` em `(0 0 0)`. Os dois modos PIMPLE usam a mesma interface AMI e a partição MPI `simple` com divisões `[2, 3, 1]`.
 
-O balanço usa até as três últimas voltas completas. Ele separa pressão, viscosidade e freio do modelo, em N·m. `net_drive_torque_N_m` positivo indica que o modelo livre ainda aceleraria a 115 RPM. Confira se o torque por volta se repetiu antes de usar a média como referência. A duração inicial é de 4 s.
+| Modo | Configuração inicial |
+| --- | --- |
+| Livre | `motion.prescribed_rpm: null`, `motion.initial_rpm: 0.0` e `time.endTime: 1.0` |
+| Prescrito | `motion.prescribed_rpm: -132.0` e `time.endTime: 2.0` para o primeiro balanço por volta |
 
-Para voltar à rotação livre, use `motion.prescribed_rpm: null` e ajuste `time.endTime` à duração desejada.
+Ajuste o último tempo de `wind.profile` a `time.endTime`. Confira a AMI e os resíduos em `logs/log.pimpleFoam`. Na execução de referência, o `checkMesh` padrão passou, mas a checagem estendida sinalizou células côncavas, determinantes baixos e faces com peso de interpolação baixo. Novas configurações precisam dessas verificações antes de usar os resultados.
+
+No livre, `free_torque_balance` compara o saldo de torque com a aceleração no último segundo registrado. No equilíbrio, ambos tendem a zero. No prescrito, `prescribed_torque_balance` usa até as três últimas voltas completas. Compare com o [SimpleFoam](../simplefoam/README.md) a −132 RPM, que calcula o torque em uma posição fixa da hélice.
+
+Mantenha `motion.shaft_damping: 0.0` para a referência. O valor experimental de teste `2.75e-4` N·m·s/rad representa uma hipótese de queda de 140 para 100 RPM em 1 s, sem vento e com carga de 10 Ω. Calibre essa perda com um ensaio independente antes de adotá-la.
+
+### Duração e escoamento inicial
+
+Use um caso SimpleFoam concluído, com a mesma hélice, vento e rotação próxima. O PimpleFoam começa em `t = 0` com os campos do último tempo salvo no SimpleFoam e a rotação definida em `motion`.
+
+```bash
+./run_mpi.sh 6 --initial-case /caminho/para/o/caso-simplefoam
+```
+
+Para testar a partida livre, configure `motion.prescribed_rpm: null` e `motion.initial_rpm: 0.0`. Se o vento já estiver estabelecido antes de liberar o rotor, use `--initial-case` com um SimpleFoam executado com `rotation.angular_velocity: 0.0`. Para ligar o ventilador com ar e rotor em repouso, use `initial.velocity: [0, 0, 0]` e execute `./run_mpi.sh 6`. Use em `wind.profile` a subida medida do vento, quando disponível.
+
+Comece com `time.endTime: 1.0` nos dois modos. No prescrito a 132 RPM, 2 s permitem comparar três voltas completas após a primeira volta. No livre, use 12 s para a primeira comparação e confira a tendência das médias de RPM e do saldo de torque nas últimas voltas. Se ainda houver deriva, rode 20 s e reavalie antes de escolher 25 s.
+
+Estenda o último ponto de `wind.profile` até `time.endTime`. No caso de bancada de 12 s, use `[[0.0, 6.86], [12.0, 6.86]]`.
 
 ## Scripts
 
@@ -47,6 +68,8 @@ A geração separa os pontos da AMI com `mergeOrSplitBaffles -split -overwrite`,
 Antes do solver, `check_mesh_motion.py` testa aproximadamente uma volta em cada sentido numa cópia temporária, a 16 rad/s, sem resolver o fluido. A execução MPI repete o teste com a mesma decomposição usada pelo solver. Erros de geometria, execução incompleta ou cobertura AMI insuficiente interrompem a execução. Consulte `log.meshMotion*` e `metadata/mesh_motion_check*.json`.
 
 Na AMI, `motion.ami_min_cos_angle` e `motion.ami_max_normal_distance` limitam as faces candidatas por orientação e distância normal. O referencial de inércia mantém o eixo corporal Y alinhado ao eixo fixo. A convecção de `k` e `omega` usa `upwind` para reduzir valores negativos, com maior difusão numérica.
+
+`mesh.cylinder_surface_level` refina só a superfície da AMI. Se omitido, usa `mesh.cylinder_level`, que também define o refinamento do interior do cilindro.
 
 ## Configurar
 
@@ -137,6 +160,18 @@ No ParaView, clique em **Apply**, selecione `propeller` em **Mesh Regions** e us
 
 Verifique células côncavas e pesos AMI na checagem ampliada. Um `Mesh OK` na checagem padrão não garante a qualidade dos resultados físicos.
 
+## Visualizar o escoamento
+
+Com o ParaView instalado, gere uma cena a partir do arquivo `.foam` da execução:
+
+```bash
+pvpython scripts/create_flow_view.py --case "runs/<run>/<run>.foam" --time 1.8
+```
+
+Abra `results/paraview/rotor_flow.pvsm` em **File → Load State** no ParaView. A cena inclui a hélice, linhas de corrente por velocidade e o tempo simulado. Use **Play** para percorrer os instantes salvos. `--output` permite escolher outra pasta de saída.
+
+Para reproduzir sem recalcular as linhas a cada quadro, acrescente `--bake --output results/paraview_light`. A exportação usa um a cada dois instantes salvos; `--frame-stride 1` mantém todos. Os arquivos PVD/VTP ficam junto do estado e devem permanecer nessa pasta. `--quality detailed` aumenta a densidade das linhas e mantém todos os instantes salvos.
+
 ## Resultados
 
 Execuções concluídas ficam em `runs/testNNN_<data>/`; interrupções e falhas ficam em `runs/failedNNN_<data>/`. Cada execução preserva entradas, scripts e parâmetros próprios.
@@ -162,6 +197,14 @@ Para reprocessar uma execução, substitua `<run>` pelo nome da pasta:
 
 ```bash
 python3 postprocessing/calculate_energy.py --case "runs/<run>"
+python3 postprocessing/plot_results.py --case "runs/<run>"
+```
+
+Para usar a medição de tensão da bancada com o resistor de 10 Ω, reprocese com `--bench-voltage-calibration`. Os argumentos são V/RPM, RPM mínimo, RPM máximo e resistência da carga em Ω. As estimativas aparecem em colunas e gráficos próprios. A energia em joules acumula apenas os intervalos válidos na faixa especificada, de 120 a 140 RPM no exemplo abaixo.
+
+```bash
+python3 postprocessing/calculate_energy.py --case "runs/<run>" \
+  --bench-voltage-calibration 0.000396 120 140 10
 python3 postprocessing/plot_results.py --case "runs/<run>"
 ```
 

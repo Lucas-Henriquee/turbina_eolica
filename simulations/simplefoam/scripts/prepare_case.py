@@ -55,7 +55,7 @@ def render_templates(root, values):
 def prepare(root=ROOT, processes=None):
     config = yaml.safe_load((root / "config.yaml").read_text())
     process_count = validate_config(config, root / "config/templates", processes)
-    geometry, mesh = config["geometry"], config["mesh"]
+    geometry, mesh, bench = config["geometry"], config["mesh"], config["bench"]
     rotor = root / "constant/triSurface" / geometry["rotor_stl"]
     cylinder = root / "constant/triSurface" / geometry["cylinder_stl"]
     if not rotor.is_file():
@@ -72,6 +72,18 @@ def prepare(root=ROOT, processes=None):
         raise ValueError("mesh.bounds requires finite minimum and maximum XYZ vectors.")
     if np.any(location <= bounds[0]) or np.any(location >= bounds[1]):
         raise ValueError("location_in_mesh must be inside the domain.")
+    if not np.isclose(bounds[0, 1], centre[1] - bench["fan_distance"]):
+        raise ValueError("mesh.bounds.ymin must match the fan inlet plane.")
+    if not np.isclose(bounds[0, 2], centre[2] - bench["axis_height"]):
+        raise ValueError("mesh.bounds.zmin must match the ground plane.")
+    fan_radius = bench["fan_diameter"] / 2
+    radial = [0, 2]
+    if np.any(centre[radial] - fan_radius <= bounds[0, radial]) or np.any(
+        centre[radial] + fan_radius >= bounds[1, radial]
+    ):
+        raise ValueError("The fan disk must fit inside the inlet without touching the ground.")
+    if bench["fan_refinement_depth"] >= bounds[1, 1] - bounds[0, 1]:
+        raise ValueError("fan_refinement_depth must be smaller than the domain length in Y.")
     if not np.isfinite(points).all():
         raise ValueError("STL contains nonfinite vertices.")
     radius = float(np.linalg.norm((points - centre)[:, [0, 2]], axis=1).max())
@@ -141,15 +153,20 @@ def prepare(root=ROOT, processes=None):
         "rotation_centre": centre,
         "angular_velocity": config["rotation"]["angular_velocity"],
         "initial_velocity": config["initial"]["velocity"],
+        "fan_velocity": [0, bench["fan_speed"], 0],
+        "fan_point1": [centre[0], bounds[0, 1] - 0.01, centre[2]],
+        "fan_point2": [centre[0], bounds[0, 1] + bench["fan_refinement_depth"], centre[2]],
+        "fan_radius": fan_radius,
+        "fan_refinement": bench["fan_refinement"],
         "initial_pressure": config["initial"]["pressure"],
         "fluid_density": config["fluid"]["density"],
         "fluid_nu": config["fluid"]["nu"],
         "turbulence_model": config["turbulence"]["model"],
         "turbulence_k": config["turbulence"]["k"],
         "turbulence_omega": config["turbulence"]["omega"],
-        "wind_reference": float(np.linalg.norm(config["initial"]["velocity"])),
+        "wind_reference": bench["fan_speed"],
         "rotor_area": np.pi * radius**2,
-        "rotor_diameter": 2 * radius,
+        "rotor_radius": radius,
         "parallel_processes": process_count,
         "parallel_method": config["parallel"]["method"],
         "parallel_coefficients": "",
@@ -160,11 +177,13 @@ def prepare(root=ROOT, processes=None):
         "non_orthogonal_correctors": config["numerics"]["nNonOrthogonalCorrectors"],
         "solver_dictionaries": solver_dictionaries(config["numerics"]["solvers"]),
         "mesh_cells": mesh["cells"],
+        "mesh_y_grading": mesh.get("y_grading", 1),
         "mesh_location": mesh["location_in_mesh"],
         "mesh_layers": mesh["add_layers"],
         "mesh_nlayers": mesh["surface_layers"],
         "mesh_rotor_level": mesh["rotor_level"],
         "mesh_cylinder_level": mesh["cylinder_level"],
+        "mesh_cylinder_surface_level": mesh.get("cylinder_surface_level", mesh["cylinder_level"]),
         "mesh_distance_levels": "\n                ".join(
             format_foam_value(pair) for pair in mesh["distance_levels"]
         ),
@@ -188,6 +207,10 @@ def prepare(root=ROOT, processes=None):
         values.update(
             {section + "_" + key: value for key, value in config[section].items()}
         )
+    omega_laplacian = config["schemes"].get("omega_laplacian")
+    values["omega_laplacian_entry"] = (
+        f'\n    "laplacian\\(.*,omega\\)" {omega_laplacian};' if omega_laplacian else ""
+    )
     for prefix, section in [
         ("residual", "residual_control"),
         ("relaxation", "relaxation"),

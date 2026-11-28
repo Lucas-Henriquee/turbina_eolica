@@ -12,8 +12,8 @@ solvers
     {
         solver GAMG;
         smoother GaussSeidel;
-        tolerance 1e-06;
-        relTol 0.1;
+        tolerance 1e-08;
+        relTol 0.01;
     }
     pFinal
     {
@@ -38,8 +38,8 @@ solvers
     {
         solver smoothSolver;
         smoother symGaussSeidel;
-        tolerance 1e-06;
-        relTol 0.1;
+        tolerance 1e-08;
+        relTol 0.01;
     }
     UFinal
     {
@@ -51,8 +51,8 @@ solvers
     {
         solver smoothSolver;
         smoother symGaussSeidel;
-        tolerance 1e-06;
-        relTol 0.1;
+        tolerance 1e-08;
+        relTol 0.01;
     }
     kFinal
     {
@@ -64,8 +64,8 @@ solvers
     {
         solver smoothSolver;
         smoother symGaussSeidel;
-        tolerance 1e-06;
-        relTol 0.1;
+        tolerance 1e-08;
+        relTol 0.01;
     }
     omegaFinal
     {
@@ -92,8 +92,8 @@ relaxationFactors
     fields { p 0.2; }
     equations
     {
-        U 0.5;
-        k 0.5;
-        omega 0.5;
+        U 0.3;
+        k 0.3;
+        omega 0.3;
     }
 }

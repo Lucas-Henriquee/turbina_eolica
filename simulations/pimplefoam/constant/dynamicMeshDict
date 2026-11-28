@@ -31,8 +31,8 @@ dynamicMultiMotionSolverFvMeshCoeffs
 
             patches (propeller);
 
-            innerDistance 0.37;
-            outerDistance 0.47;
+            innerDistance 0.38;
+            outerDistance 0.48;
 
             centreOfMass
             (4.41986008343e-09 0.0131420235794 3.33069234091e-09);
@@ -43,6 +43,7 @@ dynamicMultiMotionSolverFvMeshCoeffs
 
             momentOfInertia
             (7.62481236749e-06 0.0016667785845 0.00166858597583);
+            angularMomentum (0 0 0);
 
             rho     rhoInf;
             rhoInf  1.225;

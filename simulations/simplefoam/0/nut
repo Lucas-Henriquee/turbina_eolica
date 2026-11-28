@@ -13,24 +13,20 @@ internalField   uniform 0;
 
 boundaryField
 {
-    inlet
+    "(fanInlet|inlet|outlet|sides)"
     {
-        type            calculated;
-        value           uniform 0;
+        type calculated;
+        value uniform 0;
     }
-    outlet
+    ground
     {
-        type            calculated;
-        value           uniform 0;
-    }
-    sides
-    {
-        type            nutkWallFunction;
-        value           uniform 0;
+        type nutkWallFunction;
+        value uniform 0;
     }
     propeller
     {
         type            nutkWallFunction;
+        blending        stepwise;
         value           uniform 0;
     }
 }

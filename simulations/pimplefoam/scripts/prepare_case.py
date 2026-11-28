@@ -15,7 +15,7 @@ import numpy as np
 import yaml
 
 from config_validation import validate_controls
-from body_corrections import apply_body_corrections
+from body_corrections import apply_body_corrections, shaft_angular_momentum
 from generator_model import resolve_generator
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -301,11 +301,11 @@ def prepare_case(root=ROOT, processes=None):
         or process_count < 1
     ):
         raise ValueError("Process count must be a positive integer.")
-    if (
-        config["parallel"]["method"] != "scotch"
-        and int(np.prod(config["parallel"]["divisions"])) != process_count
-    ):
-        raise ValueError("parallel.divisions must multiply to the process count.")
+    if config["parallel"]["method"] != "scotch":
+        if process_count == 1:
+            config["parallel"]["divisions"] = [1, 1, 1]
+        elif int(np.prod(config["parallel"]["divisions"])) != process_count:
+            raise ValueError("parallel.divisions must multiply to the process count.")
     rotor = root / "constant/triSurface" / geometry["rotor_stl"]
     points = read_stl_vertices(rotor)
     radius = float(np.linalg.norm((points - centre)[:, [0, 2]], axis=1).max())
@@ -398,6 +398,9 @@ def prepare_case(root=ROOT, processes=None):
         "body_com": body["centreOfMass"],
         "body_inertia": body["momentOfInertia"],
         "body_orientation": body["orientation"],
+        "initial_angular_momentum": shaft_angular_momentum(
+            body, centre, config["motion"]["initial_rpm"] * np.pi / 30
+        ),
         "fan_point1": [centre[0], bounds[0, 1] - 0.01, centre[2]],
         "fan_point2": [
             centre[0],
@@ -429,11 +432,13 @@ def prepare_case(root=ROOT, processes=None):
         "generator_damping": generator["electrical_damping_N_m_s_rad"],
         "generator_mechanical_damping": generator["mechanical_damping_N_m_s_rad"],
         "mesh_cells": mesh["cells"],
+        "mesh_y_grading": mesh.get("y_grading", 1),
         "mesh_location": mesh["location_in_mesh"],
         "mesh_layers": mesh["add_layers"],
         "mesh_nlayers": mesh["surface_layers"],
         "mesh_rotor_level": mesh["rotor_level"],
         "mesh_cylinder_level": mesh["cylinder_level"],
+        "mesh_cylinder_surface_level": mesh.get("cylinder_surface_level", mesh["cylinder_level"]),
         "mesh_distance_levels": "\n                ".join(
             format_foam_value(x) for x in mesh["distance_levels"]
         ),

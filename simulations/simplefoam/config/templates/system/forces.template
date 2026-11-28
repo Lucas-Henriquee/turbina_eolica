@@ -33,10 +33,19 @@ functions
         pitchAxis       (0 1 0);
         // Referência nominal dos coeficientes.
         magUInf         {{wind_reference}};
-        lRef            {{rotor_diameter}};
+        lRef            {{rotor_radius}};
         Aref            {{rotor_area}};
 
         writeControl    timeStep;
         writeInterval   {{output_sample_steps}};
+    }
+
+    yPlusRotor
+    {
+        type            yPlus;
+        libs            (fieldFunctionObjects);
+        useWallFunction true;
+        writeFields     false;
+        writeControl    writeTime;
     }
 }

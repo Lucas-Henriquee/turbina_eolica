@@ -17,7 +17,8 @@ check_environment() {
         return 1
     fi
     require_commands \
-        python3 setsid blockMesh surfaceFeatureExtract snappyHexMesh checkMesh simpleFoam surfaceCheck
+        python3 setsid blockMesh surfaceFeatureExtract snappyHexMesh topoSet createPatch \
+        checkMesh simpleFoam surfaceCheck
 
     if ! python3 -c 'import yaml, numpy, matplotlib' > log.dependencies 2>&1; then
         print_status FAIL "Python dependencies" "log.dependencies" >&2
@@ -48,6 +49,8 @@ create_case_mesh() {
     run_step blockMesh
     run_step surfaceFeatureExtract
     run_step snappyHexMesh -overwrite
+    run_step topoSet
+    run_step createPatch -overwrite
     run_step checkMesh
     if ! grep -q 'Mesh OK' log.checkMesh; then
         print_status FAIL "Mesh validation" >&2

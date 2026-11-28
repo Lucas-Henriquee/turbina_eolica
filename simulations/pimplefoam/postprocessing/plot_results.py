@@ -37,7 +37,20 @@ def plot_results(case):
         graphs.extend([
             ("generator_load_power_W", "Potência elétrica estimada na carga (W)", "generator_load_power_vs_time.png"),
             ("generator_current_A", "Corrente estimada no eixo Y (A)", "generator_current_vs_time.png"),
+            ("generator_load_voltage_V", "Tensão estimada no eixo Y (V)", "generator_load_voltage_vs_time.png"),
+            ("generator_load_energy_J", "Energia estimada na carga (J)", "generator_load_energy_vs_time.png"),
         ])
+    bench_graphs = [
+        ("bench_load_voltage_V", "Tensão estimada na carga (V)", "bench_load_voltage_vs_time.png"),
+        ("bench_current_A", "Corrente estimada por V/R (A)", "bench_current_vs_time.png"),
+        ("bench_load_power_W", "Potência estimada por V²/R (W)", "bench_load_power_vs_time.png"),
+        ("bench_load_energy_J", "Energia estimada na faixa calibrada (J)", "bench_load_energy_vs_time.png"),
+    ]
+    for column, label, name in bench_graphs:
+        if column in data.dtype.names and np.isfinite(data[column]).any():
+            graphs.append((column, label, name))
+        else:
+            (output / name).unlink(missing_ok=True)
     for column, label, name in graphs:
         fig, ax = plt.subplots(figsize=(8, 4.5))
         ax.plot(data["time_s"], data[column])

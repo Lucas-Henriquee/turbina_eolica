@@ -34,6 +34,14 @@ def validate_config(config, templates, processes=None):
             "cylinder_axial_clearance",
             "cylinder_segments",
         ],
+        "bench": [
+            "fan_diameter",
+            "fan_distance",
+            "axis_height",
+            "fan_speed",
+            "fan_refinement",
+            "fan_refinement_depth",
+        ],
         "fluid": ["density", "nu"],
         "initial": ["velocity", "pressure"],
         "turbulence": ["model", "k", "omega"],
@@ -89,10 +97,17 @@ def validate_config(config, templates, processes=None):
         ],
     }
     require_keys(config, sections, "config")
+    if isinstance(config["mesh"], dict):
+        sections["mesh"].extend(
+            key for key in ("cylinder_surface_level", "y_grading") if key in config["mesh"]
+        )
+    if isinstance(config["schemes"], dict) and "omega_laplacian" in config["schemes"]:
+        sections["schemes"].append("omega_laplacian")
     for section, keys in sections.items():
         require_keys(config[section], keys, section)
     for section, keys in {
         "fluid": ["density", "nu"],
+        "bench": ["fan_diameter", "fan_distance", "axis_height", "fan_speed", "fan_refinement_depth"],
         "turbulence": ["k", "omega"],
         "geometry": ["cylinder_radial_clearance", "cylinder_axial_clearance"],
         "output": ["min_wind_speed"],
@@ -106,6 +121,7 @@ def validate_config(config, templates, processes=None):
     }.items():
         for key in keys:
             finite(config[section][key], f"{section}.{key}", 1, True)
+    finite(config["bench"]["fan_refinement"], "bench.fan_refinement", 0, True)
     finite(
         config["geometry"]["cylinder_segments"], "geometry.cylinder_segments", 16, True
     )
@@ -154,11 +170,22 @@ def validate_config(config, templates, processes=None):
             finite(
                 value, f"{section}.{key}", 1 if key == "cells" else None, key == "cells"
             )
-    velocity = config["initial"]["velocity"]
-    if velocity[0] != 0 or velocity[2] != 0 or velocity[1] <= 0:
-        raise ValueError("This case requires a positive inlet velocity along Y.")
     for key in ["rotor_level", "cylinder_level", "surface_layers"]:
         finite(mesh[key], "mesh." + key, 0, True)
+    if "cylinder_surface_level" in mesh:
+        finite(mesh["cylinder_surface_level"], "mesh.cylinder_surface_level", 0, True)
+    if "y_grading" in mesh:
+        sections_y = mesh["y_grading"]
+        if not isinstance(sections_y, list) or not sections_y:
+            raise ValueError("mesh.y_grading requires at least one section.")
+        for row in sections_y:
+            if not isinstance(row, list) or len(row) != 3:
+                raise ValueError("mesh.y_grading entries require [length, cells, expansion].")
+            finite(row[0], "mesh.y_grading length", 1e-12)
+            finite(row[1], "mesh.y_grading cells", 1, True)
+            finite(row[2], "mesh.y_grading expansion", 1e-12)
+        if sum(row[1] for row in sections_y) != mesh["cells"][1]:
+            raise ValueError("mesh.y_grading cells must sum to mesh.cells[1].")
     for key in ["maxLocalCells", "maxGlobalCells"]:
         finite(mesh[key], "mesh." + key, 1, True)
     if mesh["maxLocalCells"] > mesh["maxGlobalCells"]:

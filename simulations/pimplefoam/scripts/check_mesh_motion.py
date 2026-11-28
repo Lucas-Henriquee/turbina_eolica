@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 
 import numpy as np
+from body_corrections import shaft_angular_momentum
 
 ROOT = Path(__file__).resolve().parents[1]
 NUMBER = r"[-+]?(?:\d*\.\d+|\d+\.?\d*)(?:[eE][-+]?\d+)?"
@@ -48,7 +49,7 @@ def check_mesh_motion(case, processes=None):
     mode = "parallel" if parallel else "serial"
     suffix = "Parallel" if parallel else ""
     body = metadata["body"]
-    orientation = np.array(body["orientation"]).reshape(3, 3)
+    centre = metadata["config"]["geometry"]["rotation_centre"]
     minimum_weight = max(0.0, metadata["config"]["motion"]["ami_low_weight_correction"])
     prescribed_rpm = metadata["config"]["motion"].get("prescribed_rpm")
     dynamic_mesh = (case / "constant/dynamicMeshDict").read_text()
@@ -72,15 +73,16 @@ def check_mesh_motion(case, processes=None):
             if prescribed_rpm is not None:
                 text = replace_entry(dynamic_mesh, "omega", str(direction * 16))
             else:
-                angular_momentum = np.diag(body["momentOfInertia"]) @ (
-                    orientation.T @ np.array([0., direction * 16., 0.])
+                angular_momentum = shaft_angular_momentum(body, centre, direction * 16)
+                text = re.sub(
+                    r"(?m)^[ \t]*angularMomentum\s+[^;]+;[ \t]*\n", "", dynamic_mesh
                 )
                 marker = "sixDoFRigidBodyMotionCoeffs"
-                start = dynamic_mesh.index("{", dynamic_mesh.index(marker)) + 1
+                start = text.index("{", text.index(marker)) + 1
                 momentum = " ".join(f"{value:.15g}" for value in angular_momentum)
                 text = (
-                    dynamic_mesh[:start] + f"\n            test true;\n"
-                    f"            angularMomentum ({momentum});\n" + dynamic_mesh[start:]
+                    text[:start] + "\n            test true;\n"
+                    f"            angularMomentum ({momentum});\n" + text[start:]
                 )
             (target / "constant/dynamicMeshDict").write_text(text)
             control = (case / "system/controlDict").read_text()

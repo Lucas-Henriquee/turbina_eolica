@@ -13,23 +13,24 @@ internalField   uniform {{initial_velocity}};
 
 boundaryField
 {
-    inlet
+    fanInlet
     {
-        type            fixedValue;
-        value           uniform {{initial_velocity}};
+        type fixedValue;
+        value uniform {{fan_velocity}};
     }
-    outlet
+    "(inlet|outlet|sides)"
     {
-        type            inletOutlet;
-        inletValue      uniform {{initial_velocity}};
-        value           uniform {{initial_velocity}};
+        type pressureInletOutletVelocity;
+        value uniform (0 0 0);
     }
-    sides
+    ground
     {
-        type            slip;
+        type noSlip;
     }
+    // O MRF aplica a velocidade do rotor.
     propeller
     {
-        type            noSlip;
+        type            fixedValue;
+        value           uniform (0 0 0);
     }
 }
