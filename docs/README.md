@@ -10,7 +10,7 @@ python3 docs/generate_rotor_preview.py
 
 ## Consolidação para revisão
 
-A branch `codex/consolidar-bancada-simulacoes` reúne as alterações locais que estavam sobre `feature/prescribed-rotor-speed`. A seleção foi feita pelo conteúdo dos arquivos, sem juntar automaticamente todas as branches de testes.
+A branch `codex/consolidar-bancada-simulacoes` reúne as alterações locais que estavam sobre `feature/prescribed-rotor-speed` e incorpora a referência local de `origin/main` em `e4a9ff3`. A seleção foi feita pelo conteúdo dos arquivos, sem juntar automaticamente todas as branches de testes.
 
 | Incluído | Uso |
 | --- | --- |
@@ -26,6 +26,8 @@ A branch `codex/consolidar-bancada-simulacoes` reúne as alterações locais que
 As configurações de testes longos de 12 ou 25 s e o diagnóstico antigo a 115 RPM não substituem automaticamente o caso padrão. O PIMPLE atual é um teste inicial de 1 s com rotação livre; a documentação explica como mudar duração e rotação. O amortecimento adicional de teste `2.75e-4` permanece fora da configuração padrão, pois não foi calibrado em bancada.
 
 Execuções interrompidas, execuções com falha, malhas geradas, resultados, medições locais, caches e arquivos de compilação continuam fora dos commits, conforme o `.gitignore`. Os arquivos locais e as branches de origem são preservados.
+
+No merge com `origin/main`, foi mantido o `snappyHexMeshDict` gerado pelos templates e pelo YAML atuais. A geometria `propeller_simple.stl`, adicionada no trabalho anterior, foi guardada em `archive/previous_work/constant/triSurface/old/`, sem substituir a hélice `propeller_test.stl` dos casos atuais. A atualização de `propeller_new.stl` vinda de `main` também foi preservada.
 
 As alterações de malha e os parâmetros numéricos são entradas de desenvolvimento, não novos resultados validados para o relatório. Na revisão, ainda é necessário identificar as execuções finais, conferir a convergência do MRF, a qualidade da malha e os dados usados no ajuste elétrico. A referência de 52.350 células não deve ser atribuída a uma nova execução sem conferir seu log.
 
