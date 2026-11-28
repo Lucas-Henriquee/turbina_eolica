@@ -10,7 +10,7 @@ python3 docs/generate_rotor_preview.py
 
 ## Consolidação para revisão
 
-A branch `codex/consolidar-bancada-simulacoes` reúne as alterações locais que estavam sobre `feature/prescribed-rotor-speed` e incorpora a referência local de `origin/main` em `e4a9ff3`. A seleção foi feita pelo conteúdo dos arquivos, sem juntar automaticamente todas as branches de testes.
+A branch `feature/project-consolidation` reúne as alterações locais que estavam sobre `feature/prescribed-rotor-speed` e incorpora a referência local de `origin/main` em `e4a9ff3`. A seleção foi feita pelo conteúdo dos arquivos, sem juntar automaticamente todas as branches de testes.
 
 | Incluído | Uso |
 | --- | --- |
